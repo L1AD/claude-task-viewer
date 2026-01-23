@@ -1,0 +1,44 @@
+{
+  "name": "claude-task-viewer",
+  "version": "1.0.0",
+  "description": "A web-based Kanban board for viewing Claude Code tasks",
+  "main": "server.js",
+  "bin": {
+    "claude-task-viewer": "./server.js"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js --open"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-username/claude-task-viewer.git"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "anthropic",
+    "tasks",
+    "todo",
+    "kanban",
+    "viewer"
+  ],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/your-username/claude-task-viewer/issues"
+  },
+  "homepage": "https://github.com/your-username/claude-task-viewer#readme",
+  "dependencies": {
+    "chokidar": "^3.5.3",
+    "express": "^4.18.2",
+    "open": "^10.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "server.js",
+    "public/**/*"
+  ]
+}

@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Claude Task Viewer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            claude: {
+              orange: '#E86F33',
+              cream: '#F5F0E8'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .prose pre { background: #1f2937; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; }
+    .prose code { background: #374151; padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.875em; }
+    .prose pre code { background: transparent; padding: 0; }
+    .status-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .kanban-column { min-height: calc(100vh - 200px); }
+  </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen">
+  <div class="flex h-screen">
+    <!-- Sidebar -->
+    <aside class="w-72 bg-gray-900 border-r border-gray-800 flex flex-col flex-shrink-0">
+      <header class="p-4 border-b border-gray-800">
+        <h1 class="text-lg font-semibold flex items-center gap-2">
+          <svg class="w-6 h-6 text-claude-orange" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+          </svg>
+          Claude Tasks
+        </h1>
+        <p class="text-xs text-gray-500 mt-1">~/.claude/tasks</p>
+      </header>
+
+      <div class="p-3 border-b border-gray-800">
+        <div id="connection-status" class="flex items-center gap-2 text-xs">
+          <span class="w-2 h-2 rounded-full bg-yellow-500"></span>
+          <span class="text-gray-400">Connecting...</span>
+        </div>
+      </div>
+
+      <!-- All Tasks button -->
+      <div class="p-2 border-b border-gray-800">
+        <button
+          id="all-tasks-btn"
+          onclick="showAllTasks()"
+          class="w-full text-left p-3 rounded-lg transition-colors hover:bg-gray-800/50 flex items-center gap-2"
+        >
+          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+          </svg>
+          <span class="text-sm text-gray-300">All Tasks</span>
+        </button>
+      </div>
+
+      <nav id="sessions-list" class="flex-1 overflow-y-auto p-2">
+        <p class="text-gray-500 text-sm p-2">Loading sessions...</p>
+      </nav>
+
+      <footer class="p-3 border-t border-gray-800 text-xs text-gray-600">
+        <a href="https://github.com" class="hover:text-gray-400">GitHub</a>
+        <span class="mx-2">·</span>
+        <span>v1.0.0</span>
+      </footer>
+    </aside>
+
+    <!-- Main content -->
+    <main class="flex-1 flex flex-col overflow-hidden">
+      <div id="no-session" class="flex-1 flex items-center justify-center text-gray-600">
+        <div class="text-center">
+          <svg class="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+          </svg>
+          <p>Select a session to view tasks</p>
+        </div>
+      </div>
+
+      <div id="session-view" class="flex-1 flex flex-col overflow-hidden hidden">
+        <!-- Session header -->
+        <header class="p-4 border-b border-gray-800 bg-gray-900/50 flex-shrink-0">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 id="session-title" class="text-sm font-mono text-gray-400">Session</h2>
+              <p id="session-meta" class="text-xs text-gray-500 mt-0.5"></p>
+            </div>
+            <div class="flex items-center gap-4">
+              <div class="flex items-center gap-2">
+                <div class="w-32 h-2 bg-gray-800 rounded-full overflow-hidden">
+                  <div id="progress-bar" class="h-full bg-gradient-to-r from-claude-orange to-orange-400 transition-all duration-500" style="width: 0%"></div>
+                </div>
+                <span id="progress-percent" class="text-sm font-medium text-claude-orange">0%</span>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <!-- Kanban board -->
+        <div class="flex-1 overflow-x-auto p-4">
+          <div class="flex gap-4 h-full min-w-max">
+            <!-- Pending column -->
+            <div class="w-80 flex flex-col">
+              <div class="flex items-center gap-2 mb-3 px-1">
+                <span class="w-3 h-3 rounded-full bg-gray-500"></span>
+                <h3 class="font-medium text-gray-400">Pending</h3>
+                <span id="pending-count" class="text-xs text-gray-600 bg-gray-800 px-2 py-0.5 rounded-full">0</span>
+              </div>
+              <div id="pending-tasks" class="flex-1 space-y-3 kanban-column overflow-y-auto pr-1">
+              </div>
+            </div>
+
+            <!-- In Progress column -->
+            <div class="w-80 flex flex-col">
+              <div class="flex items-center gap-2 mb-3 px-1">
+                <span class="w-3 h-3 rounded-full bg-claude-orange status-pulse"></span>
+                <h3 class="font-medium text-claude-orange">In Progress</h3>
+                <span id="in-progress-count" class="text-xs text-claude-orange/70 bg-claude-orange/20 px-2 py-0.5 rounded-full">0</span>
+              </div>
+              <div id="in-progress-tasks" class="flex-1 space-y-3 kanban-column overflow-y-auto pr-1">
+              </div>
+            </div>
+
+            <!-- Completed column -->
+            <div class="w-80 flex flex-col">
+              <div class="flex items-center gap-2 mb-3 px-1">
+                <span class="w-3 h-3 rounded-full bg-green-500"></span>
+                <h3 class="font-medium text-green-400">Completed</h3>
+                <span id="completed-count" class="text-xs text-green-400/70 bg-green-500/20 px-2 py-0.5 rounded-full">0</span>
+              </div>
+              <div id="completed-tasks" class="flex-1 space-y-3 kanban-column overflow-y-auto pr-1">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Task detail panel -->
+    <aside id="detail-panel" class="w-96 bg-gray-900 border-l border-gray-800 hidden overflow-y-auto flex-shrink-0">
+      <header class="p-4 border-b border-gray-800 flex items-center justify-between sticky top-0 bg-gray-900 z-10">
+        <h3 class="font-semibold">Task Details</h3>
+        <button id="close-detail" class="text-gray-500 hover:text-gray-300">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </header>
+      <div id="detail-content" class="p-4"></div>
+    </aside>
+  </div>
+
+  <script>
+    // State
+    let sessions = [];
+    let currentSessionId = null;
+    let currentTasks = [];
+    let viewMode = 'session'; // 'session' or 'all'
+
+    // DOM elements
+    const sessionsList = document.getElementById('sessions-list');
+    const noSession = document.getElementById('no-session');
+    const sessionView = document.getElementById('session-view');
+    const sessionTitle = document.getElementById('session-title');
+    const sessionMeta = document.getElementById('session-meta');
+    const progressPercent = document.getElementById('progress-percent');
+    const progressBar = document.getElementById('progress-bar');
+    const pendingTasks = document.getElementById('pending-tasks');
+    const inProgressTasks = document.getElementById('in-progress-tasks');
+    const completedTasks = document.getElementById('completed-tasks');
+    const pendingCount = document.getElementById('pending-count');
+    const inProgressCount = document.getElementById('in-progress-count');
+    const completedCount = document.getElementById('completed-count');
+    const detailPanel = document.getElementById('detail-panel');
+    const detailContent = document.getElementById('detail-content');
+    const connectionStatus = document.getElementById('connection-status');
+
+    // Fetch sessions
+    async function fetchSessions() {
+      try {
+        const res = await fetch('/api/sessions');
+        sessions = await res.json();
+        renderSessions();
+      } catch (error) {
+        console.error('Failed to fetch sessions:', error);
+      }
+    }
+
+    // Fetch tasks for a session
+    async function fetchTasks(sessionId) {
+      try {
+        viewMode = 'session';
+        const res = await fetch(`/api/sessions/${sessionId}`);
+        currentTasks = await res.json();
+        currentSessionId = sessionId;
+        renderSession();
+      } catch (error) {
+        console.error('Failed to fetch tasks:', error);
+      }
+    }
+
+    // Show all tasks across all sessions
+    async function showAllTasks() {
+      try {
+        viewMode = 'all';
+        currentSessionId = null;
+        const res = await fetch('/api/tasks/all');
+        currentTasks = await res.json();
+        renderAllTasks();
+        renderSessions();
+      } catch (error) {
+        console.error('Failed to fetch all tasks:', error);
+      }
+    }
+
+    // Render all tasks view
+    function renderAllTasks() {
+      noSession.classList.add('hidden');
+      sessionView.classList.remove('hidden');
+
+      const totalTasks = currentTasks.length;
+      const completed = currentTasks.filter(t => t.status === 'completed').length;
+      const percent = totalTasks > 0 ? Math.round((completed / totalTasks) * 100) : 0;
+
+      sessionTitle.textContent = 'All Tasks';
+      sessionMeta.textContent = `${totalTasks} tasks across ${sessions.length} sessions`;
+
+      progressPercent.textContent = `${percent}%`;
+      progressBar.style.width = `${percent}%`;
+
+      renderKanban();
+    }
+
+    // Render sessions sidebar
+    function renderSessions() {
+      // Update all tasks button state
+      const allTasksBtn = document.getElementById('all-tasks-btn');
+      if (allTasksBtn) {
+        allTasksBtn.className = `w-full text-left p-3 rounded-lg transition-colors flex items-center gap-2 ${
+          viewMode === 'all' ? 'bg-gray-800' : 'hover:bg-gray-800/50'
+        }`;
+      }
+
+      if (sessions.length === 0) {
+        sessionsList.innerHTML = `
+          <div class="text-gray-500 text-sm p-4 text-center">
+            <p>No sessions found</p>
+            <p class="mt-2 text-xs">Tasks will appear here when you use Claude Code</p>
+          </div>
+        `;
+        return;
+      }
+
+      sessionsList.innerHTML = sessions.map(session => {
+        const total = session.taskCount;
+        const percent = total > 0 ? Math.round((session.completed / total) * 100) : 0;
+        const isActive = session.id === currentSessionId && viewMode === 'session';
+        const hasInProgress = session.inProgress > 0;
+        const displayName = session.name || session.id.slice(0, 8) + '...';
+        const projectName = session.project ? session.project.split('/').pop() : null;
+
+        return `
+          <button
+            onclick="fetchTasks('${session.id}')"
+            class="w-full text-left p-3 rounded-lg transition-colors ${isActive ? 'bg-gray-800' : 'hover:bg-gray-800/50'}"
+          >
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-sm text-gray-200 truncate flex-1 ${session.name ? '' : 'font-mono text-xs text-gray-400'}">${escapeHtml(displayName)}</span>
+              ${hasInProgress ? '<span class="w-2 h-2 rounded-full bg-claude-orange status-pulse flex-shrink-0"></span>' : ''}
+            </div>
+            ${projectName ? `<p class="text-xs text-gray-500 mt-1 truncate">${escapeHtml(projectName)}</p>` : ''}
+            <div class="flex items-center gap-2 mt-2">
+              <div class="flex-1 h-1.5 bg-gray-700 rounded-full overflow-hidden">
+                <div class="h-full bg-claude-orange transition-all" style="width: ${percent}%"></div>
+              </div>
+              <span class="text-xs text-gray-500">${session.completed}/${total}</span>
+            </div>
+            <p class="text-xs text-gray-600 mt-1">Tasks updated ${formatDate(session.modifiedAt)}</p>
+          </button>
+        `;
+      }).join('');
+    }
+
+    // Render current session
+    function renderSession() {
+      noSession.classList.add('hidden');
+      sessionView.classList.remove('hidden');
+
+      const session = sessions.find(s => s.id === currentSessionId);
+      if (!session) return;
+
+      const displayName = session.name || currentSessionId;
+      sessionTitle.textContent = displayName;
+      const projectName = session.project ? session.project.split('/').pop() : null;
+      sessionMeta.textContent = `${currentTasks.length} tasks${projectName ? ' · ' + projectName : ''} · Tasks updated ${formatDate(session.modifiedAt)}`;
+
+      const completed = currentTasks.filter(t => t.status === 'completed').length;
+      const percent = currentTasks.length > 0 ? Math.round((completed / currentTasks.length) * 100) : 0;
+
+      progressPercent.textContent = `${percent}%`;
+      progressBar.style.width = `${percent}%`;
+
+      renderKanban();
+      renderSessions();
+    }
+
+    // Render task card
+    function renderTaskCard(task) {
+      const isBlocked = task.blockedBy && task.blockedBy.length > 0;
+      const statusStyles = {
+        pending: 'border-gray-700 bg-gray-800/50',
+        in_progress: 'border-claude-orange/30 bg-claude-orange/10',
+        completed: 'border-green-500/30 bg-green-500/10'
+      };
+      const taskId = viewMode === 'all' ? `${task.sessionId?.slice(0,4)}-${task.id}` : task.id;
+      const sessionLabel = viewMode === 'all' && task.sessionName ? task.sessionName : null;
+
+      return `
+        <div
+          onclick="showTaskDetail('${task.id}', '${task.sessionId || ''}')"
+          class="p-3 rounded-lg border ${statusStyles[task.status] || statusStyles.pending} cursor-pointer hover:brightness-110 transition-all ${isBlocked ? 'opacity-60' : ''}"
+        >
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-xs font-mono text-gray-500">#${taskId}</span>
+            ${isBlocked ? '<span class="text-xs bg-yellow-500/20 text-yellow-400 px-1.5 py-0.5 rounded">blocked</span>' : ''}
+          </div>
+          <h4 class="text-sm font-medium ${task.status === 'completed' ? 'line-through text-gray-500' : 'text-gray-200'}">${escapeHtml(task.subject)}</h4>
+          ${sessionLabel ? `<p class="text-xs text-blue-400 mt-1">${escapeHtml(sessionLabel)}</p>` : ''}
+          ${task.status === 'in_progress' && task.activeForm ? `
+            <p class="text-xs text-claude-orange mt-2 flex items-center gap-1">
+              <span class="status-pulse">●</span>
+              ${escapeHtml(task.activeForm)}
+            </p>
+          ` : ''}
+          ${isBlocked ? `<p class="text-xs text-gray-500 mt-2">Waiting on: ${task.blockedBy.map(id => '#' + id).join(', ')}</p>` : ''}
+          ${task.description ? `<p class="text-xs text-gray-500 mt-2 line-clamp-2">${escapeHtml(task.description.split('\n')[0])}</p>` : ''}
+        </div>
+      `;
+    }
+
+    // Render kanban board
+    function renderKanban() {
+      const pending = currentTasks.filter(t => t.status === 'pending');
+      const inProgress = currentTasks.filter(t => t.status === 'in_progress');
+      const completed = currentTasks.filter(t => t.status === 'completed');
+
+      pendingCount.textContent = pending.length;
+      inProgressCount.textContent = inProgress.length;
+      completedCount.textContent = completed.length;
+
+      pendingTasks.innerHTML = pending.length > 0
+        ? pending.map(renderTaskCard).join('')
+        : '<p class="text-gray-600 text-sm text-center py-8">No pending tasks</p>';
+
+      inProgressTasks.innerHTML = inProgress.length > 0
+        ? inProgress.map(renderTaskCard).join('')
+        : '<p class="text-gray-600 text-sm text-center py-8">No tasks in progress</p>';
+
+      completedTasks.innerHTML = completed.length > 0
+        ? completed.map(renderTaskCard).join('')
+        : '<p class="text-gray-600 text-sm text-center py-8">No completed tasks</p>';
+    }
+
+    // Show task detail
+    function showTaskDetail(taskId, sessionId = null) {
+      const task = currentTasks.find(t =>
+        t.id === taskId && (!sessionId || t.sessionId === sessionId)
+      );
+      if (!task) return;
+
+      detailPanel.classList.remove('hidden');
+
+      const statusLabels = {
+        completed: '<span class="inline-flex items-center gap-1 text-green-400"><span class="w-2 h-2 rounded-full bg-green-500"></span>Completed</span>',
+        in_progress: '<span class="inline-flex items-center gap-1 text-claude-orange"><span class="w-2 h-2 rounded-full bg-claude-orange status-pulse"></span>In Progress</span>',
+        pending: '<span class="inline-flex items-center gap-1 text-gray-400"><span class="w-2 h-2 rounded-full bg-gray-500"></span>Pending</span>'
+      };
+
+      detailContent.innerHTML = `
+        <div class="space-y-4">
+          <div>
+            <span class="text-xs text-gray-500">Task #${task.id}</span>
+            <h3 class="text-lg font-semibold mt-1">${escapeHtml(task.subject)}</h3>
+          </div>
+
+          <div class="text-sm">
+            ${statusLabels[task.status] || statusLabels.pending}
+          </div>
+
+          ${task.activeForm && task.status === 'in_progress' ? `
+            <div class="text-sm bg-claude-orange/10 border border-claude-orange/20 rounded-lg p-3">
+              <span class="text-gray-400">Currently:</span>
+              <span class="text-claude-orange ml-1">${escapeHtml(task.activeForm)}</span>
+            </div>
+          ` : ''}
+
+          ${task.blockedBy && task.blockedBy.length > 0 ? `
+            <div class="text-sm bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
+              <span class="text-gray-400">Blocked by:</span>
+              <span class="text-yellow-400 ml-1">${task.blockedBy.map(id => '#' + id).join(', ')}</span>
+            </div>
+          ` : ''}
+
+          ${task.blocks && task.blocks.length > 0 ? `
+            <div class="text-sm bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+              <span class="text-gray-400">Blocks:</span>
+              <span class="text-blue-400 ml-1">${task.blocks.map(id => '#' + id).join(', ')}</span>
+            </div>
+          ` : ''}
+
+          ${task.description ? `
+            <div class="border-t border-gray-800 pt-4 mt-4">
+              <h4 class="text-sm font-medium text-gray-400 mb-3">Description</h4>
+              <div class="prose prose-invert prose-sm max-w-none text-gray-300">
+                ${marked.parse(task.description)}
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    // Close detail panel
+    document.getElementById('close-detail').onclick = () => {
+      detailPanel.classList.add('hidden');
+    };
+
+    // Setup SSE for live updates
+    function setupEventSource() {
+      const eventSource = new EventSource('/api/events');
+
+      eventSource.onopen = () => {
+        connectionStatus.innerHTML = `
+          <span class="w-2 h-2 rounded-full bg-green-500"></span>
+          <span class="text-gray-400">Live</span>
+        `;
+      };
+
+      eventSource.onerror = () => {
+        connectionStatus.innerHTML = `
+          <span class="w-2 h-2 rounded-full bg-red-500"></span>
+          <span class="text-gray-400">Disconnected</span>
+        `;
+      };
+
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+
+        if (data.type === 'update') {
+          fetchSessions();
+          if (data.sessionId === currentSessionId) {
+            fetchTasks(currentSessionId);
+          }
+        }
+      };
+    }
+
+    // Helpers
+    function formatDate(dateStr) {
+      const date = new Date(dateStr);
+      const now = new Date();
+      const diff = now - date;
+
+      if (diff < 60000) return 'just now';
+      if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
+      if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+      return date.toLocaleDateString();
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Initialize
+    fetchSessions();
+    setupEventSource();
+
+    // Auto-select most recent session with activity
+    setTimeout(() => {
+      if (sessions.length > 0 && !currentSessionId) {
+        const activeSession = sessions.find(s => s.inProgress > 0) || sessions[0];
+        fetchTasks(activeSession.id);
+      }
+    }, 500);
+  </script>
+</body>
+</html>
