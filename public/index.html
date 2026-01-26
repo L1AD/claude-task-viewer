@@ -345,6 +345,19 @@
       margin-top: 2px;
       white-space: nowrap;
       overflow: hidden;
+    }
+
+    .session-branch {
+      font-size: 10px;
+      color: var(--accent);
+      margin-top: 3px;
+      padding: 2px 6px;
+      background: var(--border);
+      border-radius: 3px;
+      display: inline-block;
+      font-family: var(--mono);
+      white-space: nowrap;
+      overflow: hidden;
       text-overflow: ellipsis;
     }
 
@@ -1925,16 +1938,20 @@
         </button>
       `;
 
-      // Build meta text with project path and description
+      // Build meta text with project path, branch, and description
+      const projectName = session.project ? session.project.split('/').pop() : null;
       const metaParts = [`${currentTasks.length} tasks`];
-      if (session.project) {
-        metaParts.push(`Project: ${session.project}`);
+      if (projectName) {
+        metaParts.push(projectName);
+      }
+      if (session.gitBranch) {
+        metaParts.push(session.gitBranch);
       }
       if (session.description) {
         metaParts.push(session.description);
       }
       metaParts.push(formatDate(session.modifiedAt));
-      sessionMeta.innerHTML = metaParts.join(' · ');
+      sessionMeta.textContent = metaParts.join(' · ');
 
       const completed = currentTasks.filter(t => t.status === 'completed').length;
       const percent = currentTasks.length > 0 ? Math.round((completed / currentTasks.length) * 100) : 0;

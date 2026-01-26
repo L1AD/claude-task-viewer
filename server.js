@@ -10,7 +10,24 @@ const os = require('os');
 
 const app = express();
 const PORT = process.env.PORT || 3456;
-const CLAUDE_DIR = process.env.CLAUDE_DIR || path.join(os.homedir(), '.claude');
+
+// Parse --dir flag for custom Claude directory
+function getClaudeDir() {
+  const dirIndex = process.argv.findIndex(arg => arg.startsWith('--dir'));
+  if (dirIndex !== -1) {
+    const arg = process.argv[dirIndex];
+    if (arg.includes('=')) {
+      const dir = arg.split('=')[1];
+      return dir.startsWith('~') ? dir.replace('~', os.homedir()) : dir;
+    } else if (process.argv[dirIndex + 1]) {
+      const dir = process.argv[dirIndex + 1];
+      return dir.startsWith('~') ? dir.replace('~', os.homedir()) : dir;
+    }
+  }
+  return process.env.CLAUDE_DIR || path.join(os.homedir(), '.claude');
+}
+
+const CLAUDE_DIR = getClaudeDir();
 const TASKS_DIR = path.join(CLAUDE_DIR, 'tasks');
 const PROJECTS_DIR = path.join(CLAUDE_DIR, 'projects');
 
