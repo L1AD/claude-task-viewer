@@ -468,7 +468,7 @@ const watcher = chokidar.watch(TASKS_DIR, {
 });
 
 watcher.on('all', (event, filePath) => {
-  if (filePath.endsWith('.json')) {
+  if ((event === 'add' || event === 'change' || event === 'unlink') && filePath.endsWith('.json')) {
     const relativePath = path.relative(TASKS_DIR, filePath);
     const sessionId = relativePath.split(path.sep)[0];
 
@@ -491,7 +491,7 @@ const teamsWatcher = chokidar.watch(TEAMS_DIR, {
 });
 
 teamsWatcher.on('all', (event, filePath) => {
-  if (filePath.endsWith('.json')) {
+  if ((event === 'add' || event === 'change' || event === 'unlink') && filePath.endsWith('.json')) {
     const relativePath = path.relative(TEAMS_DIR, filePath);
     const teamName = relativePath.split(path.sep)[0];
     teamConfigCache.delete(teamName);
@@ -509,7 +509,7 @@ const projectsWatcher = chokidar.watch(PROJECTS_DIR, {
 });
 
 projectsWatcher.on('all', (event, filePath) => {
-  if (filePath.endsWith('.jsonl')) {
+  if ((event === 'add' || event === 'change' || event === 'unlink') && filePath.endsWith('.jsonl')) {
     // Invalidate cache on any change
     lastMetadataRefresh = 0;
     broadcast({ type: 'metadata-update' });

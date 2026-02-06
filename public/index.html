@@ -20,9 +20,9 @@
       --bg-hover: #282a30;
       --border: #363840;
       --text-primary: #f0f1f3;
-      --text-secondary: #b0b3b8;
-      --text-tertiary: #8b8d95;
-      --text-muted: #6b6e76;
+      --text-secondary: #c2c4c9;
+      --text-tertiary: #9a9da5;
+      --text-muted: #7d808a;
       --accent: #E86F33;
       --accent-dim: rgba(232, 111, 51, 0.22);
       --accent-glow: rgba(232, 111, 51, 0.55);
@@ -331,7 +331,8 @@
 
     .session-secondary {
       font-size: 12px;
-      color: var(--text-muted);
+      font-weight: 450;
+      color: var(--text-tertiary);
       margin-top: 2px;
       white-space: nowrap;
       overflow: hidden;
@@ -388,14 +389,16 @@
     }
 
     .progress-text {
-      font-size: 10px;
-      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-tertiary);
       font-variant-numeric: tabular-nums;
     }
 
     .session-time {
-      font-size: 10px;
-      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 450;
+      color: var(--text-tertiary);
       margin-top: 6px;
     }
 
@@ -665,8 +668,6 @@
       background: var(--bg-elevated);
       border-color: var(--text-muted);
       border-left-color: var(--text-muted);
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
 
     .task-card:focus-visible {
@@ -677,7 +678,6 @@
     .task-card.in-progress {
       border-color: var(--accent);
       border-left: 2px solid var(--accent);
-      box-shadow: 0 0 20px var(--accent-dim), inset 0 0 20px var(--accent-dim);
     }
 
     .task-card.in-progress:hover {
@@ -686,11 +686,11 @@
 
     .task-card.completed {
       opacity: 0.85;
-      border-left: 2px solid rgba(62, 207, 142, 0.5);
+      border-left: 2px solid var(--success);
     }
 
     .task-card.completed:hover {
-      border-left-color: rgba(62, 207, 142, 0.6);
+      border-left-color: var(--success);
     }
 
     .task-card.blocked {
@@ -759,12 +759,14 @@
 
     .task-blocked {
       font-size: 11px;
+      font-weight: 500;
       color: var(--text-muted);
       margin-top: 8px;
     }
 
     .task-desc {
       font-size: 12px;
+      font-weight: 450;
       color: var(--text-tertiary);
       margin-top: 8px;
       display: -webkit-box;
@@ -1038,13 +1040,21 @@
     }
 
     /* Team badge */
+    .session-indicators {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
     .team-badge {
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      font-size: 10px;
-      padding: 1px 6px;
-      border-radius: 3px;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 4px;
       background: var(--team-dim);
       color: var(--team);
       flex-shrink: 0;
@@ -1055,13 +1065,14 @@
     }
 
     .team-info-btn {
-      width: 22px;
-      height: 22px;
+      width: 24px;
+      height: 24px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      background: transparent;
-      border: 1px solid var(--border);
+      font-size: 12px;
+      background: var(--bg-deep);
+      border: 1px solid transparent;
       border-radius: 4px;
       color: var(--team);
       cursor: pointer;
@@ -1168,13 +1179,15 @@
       --bg-hover: #d2d0cc;
       --border: #a09b94;
       --text-primary: #0a0a0a;
-      --text-secondary: #1e1e1e;
-      --text-tertiary: #333333;
-      --text-muted: #555555;
+      --text-secondary: #444444;
+      --text-tertiary: #666666;
+      --text-muted: #888888;
       --accent-dim: rgba(232, 111, 51, 0.18);
       --accent-glow: rgba(232, 111, 51, 0.5);
-      --success-dim: rgba(62, 207, 142, 0.18);
-      --warning-dim: rgba(240, 180, 41, 0.18);
+      --success: #1a8a5a;
+      --success-dim: rgba(26, 138, 90, 0.15);
+      --warning: #b07d0a;
+      --warning-dim: rgba(176, 125, 10, 0.15);
     }
 
     body.light::before {
@@ -1484,13 +1497,15 @@
         --bg-hover: #d2d0cc;
         --border: #a09b94;
         --text-primary: #0a0a0a;
-        --text-secondary: #1e1e1e;
-        --text-tertiary: #333333;
-        --text-muted: #555555;
+        --text-secondary: #444444;
+        --text-tertiary: #666666;
+        --text-muted: #888888;
         --accent-dim: rgba(232, 111, 51, 0.18);
         --accent-glow: rgba(232, 111, 51, 0.5);
-        --success-dim: rgba(62, 207, 142, 0.18);
-        --warning-dim: rgba(240, 180, 41, 0.18);
+        --success: #1a8a5a;
+        --success-dim: rgba(26, 138, 90, 0.15);
+        --warning: #b07d0a;
+        --warning-dim: rgba(176, 125, 10, 0.15);
       }
 
       body:not(.dark-forced)::before {
@@ -1765,18 +1780,29 @@
     const detailContent = document.getElementById('detail-content');
     const connectionStatus = document.getElementById('connection-status');
 
+    let lastSessionsHash = '';
+    let lastTasksHash = '';
+
     async function fetchSessions() {
       console.log('[fetchSessions] Starting...');
       try {
         const res = await fetch(`/api/sessions?limit=${sessionLimit}`);
-        sessions = await res.json();
-        console.log('[fetchSessions] Sessions loaded:', sessions.length);
-
-        // Fetch all tasks for search
+        const newSessions = await res.json();
         const tasksRes = await fetch('/api/tasks/all');
-        allTasksCache = await tasksRes.json();
-        console.log('[fetchSessions] Tasks cache loaded');
+        const newTasks = await tasksRes.json();
 
+        const sessionsHash = JSON.stringify(newSessions);
+        const tasksHash = JSON.stringify(newTasks);
+        if (sessionsHash === lastSessionsHash && tasksHash === lastTasksHash) {
+          console.log('[fetchSessions] No changes, skipping render');
+          return;
+        }
+        lastSessionsHash = sessionsHash;
+        lastTasksHash = tasksHash;
+
+        sessions = newSessions;
+        allTasksCache = newTasks;
+        console.log('[fetchSessions] Sessions loaded:', sessions.length);
         renderSessions();
         console.log('[fetchSessions] Render complete');
         fetchLiveUpdates();
@@ -2034,19 +2060,30 @@
       showTaskDetail(taskId, sessionId);
     }
 
+    let lastCurrentTasksHash = '';
+
     async function fetchTasks(sessionId) {
       try {
         viewMode = 'session';
         const res = await fetch(`/api/sessions/${sessionId}`);
 
+        let newTasks;
         if (res.ok) {
-          currentTasks = await res.json();
+          newTasks = await res.json();
         } else if (res.status === 404) {
-          currentTasks = [];
+          newTasks = [];
         } else {
           throw new Error(`Failed to fetch tasks: ${res.status}`);
         }
 
+        const hash = JSON.stringify(newTasks);
+        if (sessionId === currentSessionId && hash === lastCurrentTasksHash) {
+          console.log('[fetchTasks] No changes, skipping render');
+          return;
+        }
+        lastCurrentTasksHash = hash;
+
+        currentTasks = newTasks;
         currentSessionId = sessionId;
         ownerFilter = '';
         renderSession();
@@ -2054,6 +2091,7 @@
         console.error('Failed to fetch tasks:', error);
         currentTasks = [];
         currentSessionId = sessionId;
+        lastCurrentTasksHash = '';
         renderSession();
       }
     }
@@ -2187,9 +2225,11 @@
           <button onclick="fetchTasks('${session.id}')" class="session-item ${isActive ? 'active' : ''}" title="${tooltip}">
             <div class="session-name">
               <span>${escapeHtml(primaryName)}</span>
-              ${isTeam ? `<span class="team-badge" title="${memberCount} team members">👥 <span class="member-count">${memberCount}</span></span>` : ''}
-              ${isTeam ? `<span class="team-info-btn" onclick="event.stopPropagation(); showTeamModalForSession('${session.id}')" title="View team info">ℹ</span>` : ''}
-              ${hasInProgress ? '<span class="pulse"></span>' : ''}
+              <span class="session-indicators">
+                ${isTeam ? `<span class="team-badge" title="${memberCount} team members">👥 ${memberCount}</span>` : ''}
+                ${isTeam ? `<span class="team-info-btn" onclick="event.stopPropagation(); showTeamModalForSession('${session.id}')" title="View team info">ℹ</span>` : ''}
+                ${hasInProgress ? '<span class="pulse"></span>' : ''}
+              </span>
             </div>
             ${secondaryName ? `<div class="session-secondary">${escapeHtml(secondaryName)}</div>` : ''}
             ${gitBranch ? `<div class="session-branch">${gitBranch}</div>` : ''}
@@ -2672,26 +2712,27 @@
           retryDelay = Math.min(retryDelay * 2, 30000); // Max 30s
         };
 
+        let refreshTimer = null;
+        function debouncedRefresh(sessionId, isMetadata) {
+          clearTimeout(refreshTimer);
+          refreshTimer = setTimeout(() => {
+            fetchSessions().catch(err => console.error('[SSE] fetchSessions failed:', err));
+            if (currentSessionId && (isMetadata || sessionId === currentSessionId)) {
+              fetchTasks(currentSessionId);
+            }
+          }, 500);
+        }
+
         eventSource.onmessage = (event) => {
           const data = JSON.parse(event.data);
           console.log('[SSE] Event received:', data);
           if (data.type === 'update' || data.type === 'metadata-update') {
-            console.log('[SSE] Calling fetchSessions()...');
-            fetchSessions().catch(err => {
-              console.error('[SSE] fetchSessions failed:', err);
-            });
-
-            if (currentSessionId && (data.type === 'metadata-update' || data.sessionId === currentSessionId)) {
-              console.log('[SSE] Refreshing current session view:', currentSessionId);
-              fetchTasks(currentSessionId);
-            }
+            debouncedRefresh(data.sessionId, data.type === 'metadata-update');
           }
 
           if (data.type === 'team-update') {
             console.log('[SSE] Team update:', data.teamName);
-            fetchSessions().catch(err => {
-              console.error('[SSE] fetchSessions failed:', err);
-            });
+            debouncedRefresh(data.teamName, false);
             if (currentSessionId && data.teamName === currentSessionId) {
               fetchTasks(currentSessionId);
             }
