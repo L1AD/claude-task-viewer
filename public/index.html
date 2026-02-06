@@ -1144,31 +1144,30 @@
       border-top: 1px solid var(--border);
     }
 
-    /* Owner filter */
+    /* Owner filter — overlaid, zero layout impact */
+    .kanban {
+      position: relative;
+    }
+
     .owner-filter-bar {
       display: none;
-      padding: 8px 24px 0;
-      justify-content: flex-end;
+      position: absolute;
+      top: 24px;
+      right: 24px;
+      z-index: 2;
     }
 
     .owner-filter-bar.visible {
       display: flex;
       align-items: center;
-      gap: 8px;
-    }
-
-    .owner-filter-bar label {
-      font-size: 10px;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      white-space: nowrap;
     }
 
     .owner-filter-bar .filter-dropdown {
       flex: none;
       width: auto;
       max-width: 180px;
+      font-size: 13px;
+      padding: 6px 10px;
     }
 
     /* Light mode */
@@ -1697,13 +1696,12 @@
           </div>
         </header>
 
-        <div id="owner-filter-bar" class="owner-filter-bar">
-          <label>Filter by owner:</label>
-          <select id="owner-filter" class="filter-dropdown" onchange="filterByOwner(this.value)" aria-label="Filter by team member">
-            <option value="">All Members</option>
-          </select>
-        </div>
         <div class="kanban" id="main-content">
+          <div id="owner-filter-bar" class="owner-filter-bar">
+            <select id="owner-filter" class="filter-dropdown" onchange="filterByOwner(this.value)" aria-label="Filter by team member">
+              <option value="">All Members</option>
+            </select>
+          </div>
           <div class="kanban-column" aria-label="Pending tasks">
             <div class="column-header">
               <span class="column-dot pending"></span>
@@ -2947,11 +2945,21 @@
       bar.classList.add('visible');
       const owners = [...new Set(currentTasks.map(t => t.owner).filter(Boolean))].sort();
       select.innerHTML = '<option value="">All Members</option>' +
-        owners.map(o => `<option value="${escapeHtml(o)}"${o === ownerFilter ? ' selected' : ''}>${escapeHtml(o)}</option>`).join('');
+        owners.map(o => {
+          const c = getOwnerColor(o);
+          return `<option value="${escapeHtml(o)}" style="color:${c.color};background:${c.bg}"${o === ownerFilter ? ' selected' : ''}>${escapeHtml(o)}</option>`;
+        }).join('');
+      const current = ownerFilter ? getOwnerColor(ownerFilter) : null;
+      select.style.color = current ? current.color : '';
+      select.style.backgroundColor = current ? current.bg : '';
     }
 
     function filterByOwner(value) {
       ownerFilter = value;
+      const select = document.getElementById('owner-filter');
+      const c = value ? getOwnerColor(value) : null;
+      select.style.color = c ? c.color : '';
+      select.style.backgroundColor = c ? c.bg : '';
       renderKanban();
     }
 
