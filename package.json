@@ -1,10 +1,10 @@
 {
   "name": "claude-code-kanban",
-  "version": "1.9.0",
+  "version": "1.9.1",
   "description": "A web-based Kanban board for viewing Claude Code tasks with agent teams support",
   "main": "server.js",
   "bin": {
-    "claude-task-viewer": "./server.js"
+    "claude-code-kanban": "./server.js"
   },
   "scripts": {
     "start": "node server.js",
