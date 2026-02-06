@@ -1,7 +1,7 @@
 {
-  "name": "claude-task-viewer",
-  "version": "1.8.0",
-  "description": "A web-based Kanban board for viewing Claude Code tasks",
+  "name": "claude-code-kanban",
+  "version": "1.9.0",
+  "description": "A web-based Kanban board for viewing Claude Code tasks with agent teams support",
   "main": "server.js",
   "bin": {
     "claude-task-viewer": "./server.js"
@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/L1AD/claude-task-viewer.git"
+    "url": "git+https://github.com/NikiforovAll/claude-task-viewer.git"
   },
   "keywords": [
     "claude",
@@ -21,14 +21,15 @@
     "tasks",
     "todo",
     "kanban",
-    "viewer"
+    "viewer",
+    "agent-teams"
   ],
-  "author": "",
+  "author": "NikiforovAll",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/L1AD/claude-task-viewer/issues"
+    "url": "https://github.com/NikiforovAll/claude-task-viewer/issues"
   },
-  "homepage": "https://github.com/L1AD/claude-task-viewer#readme",
+  "homepage": "https://github.com/NikiforovAll/claude-task-viewer#readme",
   "dependencies": {
     "chokidar": "^3.5.3",
     "express": "^4.18.2",
