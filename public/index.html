@@ -7,28 +7,31 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    @font-face { font-display: swap; }
+  </style>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
   <style>
     :root {
-      --bg-deep: #08090a;
-      --bg-surface: #0d0e10;
-      --bg-elevated: #131416;
-      --bg-hover: #1a1b1e;
-      --border: #1e2023;
-      --text-primary: #e8e8e8;
-      --text-secondary: #8b8d91;
-      --text-tertiary: #5a5c60;
-      --text-muted: #3d3f42;
+      --bg-deep: #101114;
+      --bg-surface: #16181c;
+      --bg-elevated: #1e2025;
+      --bg-hover: #282a30;
+      --border: #363840;
+      --text-primary: #f0f1f3;
+      --text-secondary: #b0b3b8;
+      --text-tertiary: #8b8d95;
+      --text-muted: #6b6e76;
       --accent: #E86F33;
-      --accent-dim: rgba(232, 111, 51, 0.15);
-      --accent-glow: rgba(232, 111, 51, 0.4);
+      --accent-dim: rgba(232, 111, 51, 0.22);
+      --accent-glow: rgba(232, 111, 51, 0.55);
       --success: #3ecf8e;
-      --success-dim: rgba(62, 207, 142, 0.12);
+      --success-dim: rgba(62, 207, 142, 0.18);
       --warning: #f0b429;
-      --warning-dim: rgba(240, 180, 41, 0.12);
+      --warning-dim: rgba(240, 180, 41, 0.18);
       --team: #60a5fa;
-      --team-dim: var(--team-dim);
+      --team-dim: rgba(96, 165, 250, 0.18);
       --mono: 'IBM Plex Mono', monospace;
       --serif: 'Playfair Display', serif;
     }
@@ -37,7 +40,7 @@
 
     body {
       font-family: var(--mono);
-      font-size: 13px;
+      font-size: 14px;
       background: var(--bg-deep);
       color: var(--text-primary);
       line-height: 1.5;
@@ -47,18 +50,7 @@
 
     /* Subtle scan-line texture */
     body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background: repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 2px,
-        rgba(0,0,0,0.03) 2px,
-        rgba(0,0,0,0.03) 4px
-      );
-      pointer-events: none;
-      z-index: 9999;
+      display: none;
     }
 
     /* Scrollbar */
@@ -72,17 +64,22 @@
 
     /* Sidebar */
     .sidebar {
-      width: 280px;
+      width: 300px;
       background: var(--bg-surface);
       border-right: 1px solid var(--border);
+      box-shadow: 1px 0 12px rgba(0, 0, 0, 0.04);
       display: flex;
       flex-direction: column;
       flex-shrink: 0;
     }
 
     .sidebar-header {
-      padding: 20px;
-      border-bottom: 1px solid var(--border);
+      padding: 20px 20px 16px;
+      border-bottom: none;
+      background-image: linear-gradient(to right, transparent, var(--border), transparent);
+      background-size: 100% 1px;
+      background-repeat: no-repeat;
+      background-position: bottom;
     }
 
     .logo {
@@ -95,7 +92,7 @@
       width: 24px;
       height: 24px;
       background: var(--accent);
-      border-radius: 4px;
+      border-radius: 6px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -109,7 +106,7 @@
 
     .logo-text {
       font-family: var(--serif);
-      font-size: 16px;
+      font-size: 17px;
       font-weight: 500;
       letter-spacing: -0.02em;
     }
@@ -119,7 +116,7 @@
       align-items: center;
       gap: 6px;
       margin-top: 12px;
-      font-size: 11px;
+      font-size: 12px;
       color: var(--text-tertiary);
       text-transform: uppercase;
       letter-spacing: 0.05em;
@@ -145,7 +142,11 @@
     .sidebar-section {
       display: flex;
       flex-direction: column;
-      border-bottom: 1px solid var(--border);
+      border-bottom: none;
+      background-image: linear-gradient(to right, transparent, var(--border), transparent);
+      background-size: 100% 1px;
+      background-repeat: no-repeat;
+      background-position: bottom;
     }
 
     .sidebar-section.flex-1 {
@@ -158,36 +159,41 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 12px 16px;
-      font-size: 10px;
-      font-weight: 600;
+      padding: 14px 20px 10px;
+      font-size: 11px;
+      font-weight: 500;
       text-transform: uppercase;
-      letter-spacing: 0.1em;
+      letter-spacing: 0.12em;
       color: var(--text-muted);
     }
 
     .filter-row {
       display: flex;
-      gap: 8px;
-      padding: 0 12px 12px;
+      gap: 6px;
+      padding: 0 16px 10px;
     }
 
     .filter-dropdown {
       flex: 1;
       appearance: none;
-      background: var(--bg-elevated);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 6px 24px 6px 10px;
+      background: var(--bg-deep);
+      border: 1px solid transparent;
+      border-radius: 6px;
+      padding: 7px 26px 7px 10px;
       font-family: var(--mono);
-      font-size: 11px;
+      font-size: 12px;
       color: var(--text-secondary);
       cursor: pointer;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%235a5c60' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%238b8d95' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
       background-position: right 8px center;
       text-overflow: ellipsis;
       min-width: 0;
+      transition: all 0.15s ease;
+    }
+
+    .filter-dropdown:hover {
+      border-color: var(--border);
     }
 
     .filter-dropdown option {
@@ -198,11 +204,12 @@
     .filter-dropdown:focus {
       outline: none;
       border-color: var(--accent);
+      box-shadow: 0 0 0 2px var(--accent-dim);
     }
 
     /* Live Updates */
     .live-updates {
-      padding: 0 12px 12px;
+      padding: 0 16px 12px;
       max-height: 180px;
       overflow-y: auto;
     }
@@ -219,16 +226,16 @@
       align-items: flex-start;
       gap: 10px;
       padding: 10px 12px;
-      background: var(--bg-elevated);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      margin-bottom: 6px;
+      background: var(--bg-deep);
+      border: 1px solid transparent;
+      border-radius: 8px;
+      margin-bottom: 4px;
       cursor: pointer;
       transition: all 0.15s ease;
     }
 
     .live-item:hover {
-      border-color: var(--text-muted);
+      background: var(--bg-hover);
     }
 
     .live-item .pulse {
@@ -248,7 +255,7 @@
     }
 
     .live-item-action {
-      font-size: 12px;
+      font-size: 13px;
       color: var(--text-primary);
       white-space: nowrap;
       overflow: hidden;
@@ -256,7 +263,7 @@
     }
 
     .live-item-session {
-      font-size: 10px;
+      font-size: 11px;
       color: var(--text-tertiary);
       margin-top: 2px;
       white-space: nowrap;
@@ -268,25 +275,24 @@
     .sessions-list {
       flex: 1;
       overflow-y: auto;
-      padding: 0 12px 12px;
+      padding: 0 14px 12px;
     }
 
     .session-item {
       display: block;
       width: 100%;
-      padding: 12px;
-      margin-bottom: 4px;
+      padding: 12px 14px;
+      margin-bottom: 2px;
       background: transparent;
       border: 1px solid transparent;
-      border-radius: 6px;
+      border-radius: 8px;
       text-align: left;
       cursor: pointer;
-      transition: all 0.15s ease;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .session-item:hover {
       background: var(--bg-hover);
-      border-color: var(--border);
     }
 
     .session-item.active {
@@ -302,7 +308,7 @@
     }
 
     .session-name span {
-      font-size: 13px;
+      font-size: 14px;
       color: var(--text-primary);
       white-space: nowrap;
       overflow: hidden;
@@ -320,11 +326,11 @@
 
     @keyframes pulse {
       0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.6; transform: scale(0.9); }
+      50% { opacity: 0.7; transform: scale(0.9); }
     }
 
     .session-secondary {
-      font-size: 11px;
+      font-size: 12px;
       color: var(--text-muted);
       margin-top: 2px;
       white-space: nowrap;
@@ -378,7 +384,7 @@
     .progress-fill {
       height: 100%;
       background: var(--accent);
-      transition: width 0.3s ease;
+      transition: width 0.5s ease-out;
     }
 
     .progress-text {
@@ -395,8 +401,12 @@
 
     /* Footer */
     .sidebar-footer {
-      padding: 12px 20px;
-      border-top: 1px solid var(--border);
+      padding: 14px 20px;
+      border-top: none;
+      background-image: linear-gradient(to right, transparent, var(--border), transparent);
+      background-size: 100% 1px;
+      background-repeat: no-repeat;
+      background-position: top;
       font-size: 10px;
       color: var(--text-muted);
     }
@@ -434,7 +444,7 @@
     .empty-state svg {
       width: 48px;
       height: 48px;
-      opacity: 0.3;
+      opacity: 0.5;
     }
 
     .empty-state p {
@@ -465,16 +475,16 @@
 
     .view-title {
       font-family: var(--serif);
-      font-size: 20px;
+      font-size: 26px;
       font-weight: 400;
-      letter-spacing: -0.02em;
+      letter-spacing: -0.03em;
       display: flex;
       align-items: center;
       gap: 12px;
     }
 
     .view-meta {
-      font-size: 11px;
+      font-size: 12px;
       color: var(--text-tertiary);
       margin-top: 4px;
     }
@@ -497,14 +507,14 @@
     }
 
     .view-progress .progress-text {
-      font-size: 13px;
+      font-size: 14px;
       font-weight: 500;
       color: var(--accent);
     }
 
     .icon-btn {
-      width: 32px;
-      height: 32px;
+      width: 34px;
+      height: 34px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -547,8 +557,9 @@
     }
 
     .kanban-column {
-      width: 320px;
-      flex-shrink: 0;
+      flex: 1;
+      min-width: 280px;
+      max-width: 400px;
       display: flex;
       flex-direction: column;
     }
@@ -557,9 +568,13 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      padding-bottom: 16px;
-      border-bottom: 1px solid var(--border);
+      padding-bottom: 20px;
+      border-bottom: none;
       margin-bottom: 16px;
+      background-image: linear-gradient(to bottom, transparent 80%, var(--border) 100%);
+      background-size: 100% 1px;
+      background-repeat: no-repeat;
+      background-position: bottom;
     }
 
     .column-dot {
@@ -568,7 +583,7 @@
       border-radius: 50%;
     }
 
-    .column-dot.pending { background: var(--text-muted); }
+    .column-dot.pending { background: var(--text-tertiary); }
     .column-dot.in-progress {
       background: var(--accent);
       box-shadow: 0 0 12px var(--accent-glow);
@@ -577,10 +592,10 @@
     .column-dot.completed { background: var(--success); }
 
     .column-title {
-      font-size: 12px;
+      font-size: 14px;
       font-weight: 500;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.06em;
     }
 
     .column-title.pending { color: var(--text-tertiary); }
@@ -588,7 +603,7 @@
     .column-title.completed { color: var(--success); }
 
     .column-count {
-      font-size: 10px;
+      font-size: 11px;
       padding: 2px 8px;
       border-radius: 10px;
       font-variant-numeric: tabular-nums;
@@ -596,7 +611,7 @@
 
     .column-count.pending {
       background: var(--bg-elevated);
-      color: var(--text-muted);
+      color: var(--text-tertiary);
     }
 
     .column-count.in-progress {
@@ -622,39 +637,68 @@
       padding: 32px 16px;
       color: var(--text-muted);
       font-size: 12px;
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      margin-top: 4px;
+    }
+
+    .column-empty svg {
+      width: 24px;
+      height: 24px;
+      opacity: 0.5;
+      margin-bottom: 8px;
     }
 
     /* Task card */
     .task-card {
-      padding: 14px;
+      padding: 16px;
+      padding-left: 18px;
       background: var(--bg-surface);
       border: 1px solid var(--border);
+      border-left: 2px solid var(--text-muted);
       border-radius: 8px;
       cursor: pointer;
-      transition: all 0.15s ease;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .task-card:hover {
       background: var(--bg-elevated);
       border-color: var(--text-muted);
+      border-left-color: var(--text-muted);
       transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .task-card:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
     }
 
     .task-card.in-progress {
       border-color: var(--accent);
+      border-left: 2px solid var(--accent);
       box-shadow: 0 0 20px var(--accent-dim), inset 0 0 20px var(--accent-dim);
     }
 
+    .task-card.in-progress:hover {
+      border-left-color: var(--accent);
+    }
+
     .task-card.completed {
-      opacity: 0.6;
+      opacity: 0.85;
+      border-left: 2px solid rgba(62, 207, 142, 0.5);
+    }
+
+    .task-card.completed:hover {
+      border-left-color: rgba(62, 207, 142, 0.6);
     }
 
     .task-card.blocked {
-      opacity: 0.5;
+      opacity: 0.7;
     }
 
     .task-id {
-      font-size: 10px;
+      font-size: 11px;
       color: var(--text-muted);
       margin-bottom: 6px;
       display: flex;
@@ -663,20 +707,21 @@
     }
 
     .task-badge {
-      font-size: 9px;
-      padding: 2px 6px;
-      border-radius: 3px;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 4px;
       text-transform: uppercase;
-      letter-spacing: 0.03em;
+      letter-spacing: 0.04em;
     }
 
     .task-badge.blocked {
-      background: var(--warning-dim);
-      color: var(--warning);
+      background: rgba(220, 80, 30, 0.15);
+      color: #dc4e1e;
     }
 
     .task-title {
-      font-size: 13px;
+      font-size: 14px;
       color: var(--text-primary);
       line-height: 1.4;
     }
@@ -687,10 +732,9 @@
     }
 
     .task-session {
-      font-size: 11px;
+      font-size: 12px;
       color: var(--accent);
       margin-top: 6px;
-      opacity: 0.8;
     }
 
     .task-active {
@@ -714,13 +758,13 @@
     }
 
     .task-blocked {
-      font-size: 10px;
+      font-size: 11px;
       color: var(--text-muted);
       margin-top: 8px;
     }
 
     .task-desc {
-      font-size: 11px;
+      font-size: 12px;
       color: var(--text-tertiary);
       margin-top: 8px;
       display: -webkit-box;
@@ -731,12 +775,18 @@
 
     /* Detail panel */
     .detail-panel {
-      width: 400px;
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 440px;
+      height: 100vh;
       background: var(--bg-surface);
       border-left: 1px solid var(--border);
-      display: none;
+      box-shadow: -8px 0 24px rgba(0, 0, 0, 0.15);
+      display: flex;
       flex-direction: column;
-      flex-shrink: 0;
+      display: none;
+      z-index: 100;
       overflow: hidden;
     }
 
@@ -746,7 +796,11 @@
 
     .detail-header {
       padding: 16px 20px;
-      border-bottom: 1px solid var(--border);
+      border-bottom: none;
+      background-image: linear-gradient(to right, transparent, var(--border), transparent);
+      background-size: 100% 1px;
+      background-repeat: no-repeat;
+      background-position: bottom;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -789,11 +843,21 @@
     }
 
     .detail-section {
-      margin-bottom: 20px;
+      margin-bottom: 16px;
+      padding-bottom: 16px;
+      border-bottom: none;
+      background-image: linear-gradient(to right, transparent, var(--border), transparent);
+      background-size: 100% 1px;
+      background-repeat: no-repeat;
+      background-position: bottom;
+    }
+
+    .detail-section:last-child {
+      background-image: none;
     }
 
     .detail-label {
-      font-size: 10px;
+      font-size: 11px;
       font-weight: 500;
       text-transform: uppercase;
       letter-spacing: 0.08em;
@@ -803,7 +867,7 @@
 
     .detail-title {
       font-family: var(--serif);
-      font-size: 18px;
+      font-size: 22px;
       line-height: 1.4;
     }
 
@@ -812,8 +876,10 @@
       align-items: center;
       gap: 6px;
       font-size: 12px;
-      padding: 6px 10px;
-      border-radius: 4px;
+      font-weight: 500;
+      padding: 5px 12px;
+      border-radius: 20px;
+      letter-spacing: 0.02em;
     }
 
     .detail-status.pending {
@@ -850,24 +916,24 @@
 
     .detail-box.active {
       background: var(--accent-dim);
-      border: 1px solid rgba(232, 111, 51, 0.2);
+      border: 1px solid rgba(232, 111, 51, 0.35);
       color: var(--accent);
     }
 
     .detail-box.blocked {
       background: var(--warning-dim);
-      border: 1px solid rgba(240, 180, 41, 0.2);
+      border: 1px solid rgba(240, 180, 41, 0.35);
       color: var(--warning);
     }
 
     .detail-box.blocks {
       background: var(--team-dim);
-      border: 1px solid rgba(96, 165, 250, 0.25);
+      border: 1px solid rgba(96, 165, 250, 0.35);
       color: var(--team);
     }
 
     .detail-desc {
-      font-size: 13px;
+      font-size: 14px;
       line-height: 1.7;
       color: var(--text-secondary);
     }
@@ -1014,11 +1080,10 @@
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      font-size: 9px;
-      padding: 2px 6px;
-      border-radius: 3px;
-      background: var(--team-dim);
-      color: var(--team);
+      font-size: 10px;
+      font-weight: 500;
+      padding: 3px 8px;
+      border-radius: 4px;
       text-transform: none;
       letter-spacing: 0;
     }
@@ -1097,19 +1162,19 @@
 
     /* Light mode */
     body.light {
-      --bg-deep: #fafafa;
-      --bg-surface: #ffffff;
-      --bg-elevated: #f5f5f5;
-      --bg-hover: #efefef;
-      --border: #e5e5e5;
-      --text-primary: #171717;
-      --text-secondary: #525252;
-      --text-tertiary: #737373;
-      --text-muted: #a3a3a3;
-      --accent-dim: rgba(232, 111, 51, 0.1);
-      --accent-glow: rgba(232, 111, 51, 0.3);
-      --success-dim: rgba(62, 207, 142, 0.1);
-      --warning-dim: rgba(240, 180, 41, 0.1);
+      --bg-deep: #e8e6e3;
+      --bg-surface: #f4f3f1;
+      --bg-elevated: #dddbd8;
+      --bg-hover: #d2d0cc;
+      --border: #a09b94;
+      --text-primary: #0a0a0a;
+      --text-secondary: #1e1e1e;
+      --text-tertiary: #333333;
+      --text-muted: #555555;
+      --accent-dim: rgba(232, 111, 51, 0.18);
+      --accent-glow: rgba(232, 111, 51, 0.5);
+      --success-dim: rgba(62, 207, 142, 0.18);
+      --warning-dim: rgba(240, 180, 41, 0.18);
     }
 
     body.light::before {
@@ -1141,19 +1206,23 @@
     /* Search input */
     .search-container {
       position: relative;
-      padding: 0 12px 8px;
+      padding: 0 16px 8px;
     }
 
     .search-input {
       width: 100%;
-      padding: 8px 32px 8px 12px;
-      background: var(--bg-elevated);
-      border: 1px solid var(--border);
+      padding: 9px 32px 9px 12px;
+      background: var(--bg-deep);
+      border: 1px solid transparent;
       border-radius: 6px;
       color: var(--text-primary);
       font-family: var(--mono);
-      font-size: 12px;
+      font-size: 13px;
       transition: all 0.15s ease;
+    }
+
+    .search-input:hover {
+      border-color: var(--border);
     }
 
     .search-input:focus {
@@ -1196,8 +1265,7 @@
     .modal-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.7);
-      backdrop-filter: blur(4px);
+      background: rgba(0, 0, 0, 0.5);
       display: none;
       align-items: center;
       justify-content: center;
@@ -1374,9 +1442,130 @@
       background: var(--bg-hover);
       border-color: var(--text-muted);
     }
+
+    /* Skip navigation */
+    .skip-link {
+      position: absolute;
+      top: -100%;
+      left: 16px;
+      z-index: 100000;
+      padding: 8px 16px;
+      background: var(--accent);
+      color: white;
+      font-size: 13px;
+      border-radius: 0 0 6px 6px;
+      text-decoration: none;
+      transition: top 0.2s;
+    }
+
+    .skip-link:focus {
+      top: 0;
+    }
+
+    /* Visually hidden (a11y) */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    /* System theme detection */
+    @media (prefers-color-scheme: light) {
+      body:not(.dark-forced) {
+        --bg-deep: #e8e6e3;
+        --bg-surface: #f4f3f1;
+        --bg-elevated: #dddbd8;
+        --bg-hover: #d2d0cc;
+        --border: #a09b94;
+        --text-primary: #0a0a0a;
+        --text-secondary: #1e1e1e;
+        --text-tertiary: #333333;
+        --text-muted: #555555;
+        --accent-dim: rgba(232, 111, 51, 0.18);
+        --accent-glow: rgba(232, 111, 51, 0.5);
+        --success-dim: rgba(62, 207, 142, 0.18);
+        --warning-dim: rgba(240, 180, 41, 0.18);
+      }
+
+      body:not(.dark-forced)::before {
+        display: none;
+      }
+    }
+
+    /* Card entrance animation */
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .column-tasks .task-card {
+      animation: fadeSlideIn 150ms ease-out both;
+    }
+
+    .column-tasks .task-card:nth-child(1) { animation-delay: 0ms; }
+    .column-tasks .task-card:nth-child(2) { animation-delay: 30ms; }
+    .column-tasks .task-card:nth-child(3) { animation-delay: 60ms; }
+    .column-tasks .task-card:nth-child(4) { animation-delay: 90ms; }
+    .column-tasks .task-card:nth-child(5) { animation-delay: 120ms; }
+    .column-tasks .task-card:nth-child(6) { animation-delay: 150ms; }
+    .column-tasks .task-card:nth-child(7) { animation-delay: 180ms; }
+    .column-tasks .task-card:nth-child(8) { animation-delay: 210ms; }
+    .column-tasks .task-card:nth-child(9) { animation-delay: 240ms; }
+    .column-tasks .task-card:nth-child(10) { animation-delay: 270ms; }
+
+    /* Connection status breathing */
+    @keyframes breathe {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.65; }
+    }
+
+    .connection-dot.live {
+      animation: breathe 3s ease-in-out infinite;
+    }
+
+    /* Progress bar shimmer */
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+
+    .progress-fill.shimmer {
+      background: linear-gradient(90deg, var(--accent) 0%, rgba(232,111,51,0.75) 50%, var(--accent) 100%);
+      background-size: 200% 100%;
+      animation: shimmer 2s linear infinite;
+    }
+
+    /* Session list hover accent bar */
+    .session-item {
+      position: relative;
+    }
+
+    .session-item::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 0;
+      height: 60%;
+      background: var(--accent);
+      border-radius: 0 2px 2px 0;
+      transition: width 0.15s ease;
+    }
+
+    .session-item:hover::before {
+      width: 2px;
+    }
   </style>
 </head>
 <body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
   <div class="app">
     <!-- Sidebar -->
     <aside class="sidebar">
@@ -1419,23 +1608,23 @@
             placeholder="Search tasks, sessions, projects..."
             oninput="handleSearch(this.value)"
           />
-          <button id="search-clear-btn" class="search-clear" onclick="clearSearch()" title="Clear search">
+          <button id="search-clear-btn" class="search-clear" onclick="clearSearch()" title="Clear search" aria-label="Clear search">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M18 6L6 18M6 6l12 12"/>
             </svg>
           </button>
         </div>
         <div class="filter-row">
-          <select id="project-filter" class="filter-dropdown" onchange="filterByProject(this.value)">
+          <select id="project-filter" class="filter-dropdown" onchange="filterByProject(this.value)" aria-label="Filter by project">
             <option value="">All Projects</option>
           </select>
-          <select id="session-filter" class="filter-dropdown" onchange="filterBySessions(this.value)">
+          <select id="session-filter" class="filter-dropdown" onchange="filterBySessions(this.value)" aria-label="Filter by session status">
             <option value="all">All Sessions</option>
             <option value="active">Active Only</option>
           </select>
         </div>
         <div class="filter-row">
-          <select id="session-limit" class="filter-dropdown" onchange="changeSessionLimit(this.value)">
+          <select id="session-limit" class="filter-dropdown" onchange="changeSessionLimit(this.value)" aria-label="Number of sessions to show">
             <option value="10">Show 10</option>
             <option value="20">Show 20</option>
             <option value="50">Show 50</option>
@@ -1445,11 +1634,6 @@
         <div id="sessions-list" class="sessions-list"></div>
       </div>
 
-      <footer class="sidebar-footer">
-        <a href="https://github.com/L1AD/claude-task-viewer" target="_blank">GitHub</a>
-        <span style="margin: 0 6px;">·</span>
-        <a href="https://policylayer.com" target="_blank">PolicyLayer</a>
-      </footer>
     </aside>
 
     <!-- Main -->
@@ -1474,7 +1658,7 @@
               </div>
               <span id="progress-percent" class="progress-text">0%</span>
             </div>
-            <button id="theme-toggle" class="icon-btn" onclick="toggleTheme()" title="Toggle theme">
+            <button id="theme-toggle" class="icon-btn" onclick="toggleTheme()" title="Toggle theme" aria-label="Toggle theme">
               <svg id="theme-icon-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
               </svg>
@@ -1483,48 +1667,53 @@
                 <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
               </svg>
             </button>
-            <button class="icon-btn" onclick="showHelpModal()" title="Keyboard shortcuts (?)">
+            <button class="icon-btn" onclick="showHelpModal()" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="10"/>
                 <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
                 <circle cx="12" cy="17" r="0.5" fill="currentColor"/>
               </svg>
             </button>
+            <a href="https://github.com/NikiforovAll/claude-task-viewer" target="_blank" class="icon-btn" title="View on GitHub" aria-label="View on GitHub">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+              </svg>
+            </a>
           </div>
         </header>
 
         <div id="owner-filter-bar" class="owner-filter-bar">
           <label>Filter by owner:</label>
-          <select id="owner-filter" class="filter-dropdown" onchange="filterByOwner(this.value)">
+          <select id="owner-filter" class="filter-dropdown" onchange="filterByOwner(this.value)" aria-label="Filter by team member">
             <option value="">All Members</option>
           </select>
         </div>
-        <div class="kanban">
-          <div class="kanban-column">
+        <div class="kanban" id="main-content">
+          <div class="kanban-column" aria-label="Pending tasks">
             <div class="column-header">
               <span class="column-dot pending"></span>
               <span class="column-title pending">Pending</span>
               <span id="pending-count" class="column-count pending">0</span>
             </div>
-            <div id="pending-tasks" class="column-tasks"></div>
+            <div id="pending-tasks" class="column-tasks" role="list"></div>
           </div>
 
-          <div class="kanban-column">
+          <div class="kanban-column" aria-label="In progress tasks">
             <div class="column-header">
               <span class="column-dot in-progress"></span>
               <span class="column-title in-progress">In Progress</span>
               <span id="in-progress-count" class="column-count in-progress">0</span>
             </div>
-            <div id="in-progress-tasks" class="column-tasks"></div>
+            <div id="in-progress-tasks" class="column-tasks" role="list"></div>
           </div>
 
-          <div class="kanban-column">
+          <div class="kanban-column" aria-label="Completed tasks">
             <div class="column-header">
               <span class="column-dot completed"></span>
               <span class="column-title completed">Completed</span>
               <span id="completed-count" class="column-count completed">0</span>
             </div>
-            <div id="completed-tasks" class="column-tasks"></div>
+            <div id="completed-tasks" class="column-tasks" role="list"></div>
           </div>
         </div>
       </div>
@@ -1534,7 +1723,7 @@
     <aside id="detail-panel" class="detail-panel">
       <header class="detail-header">
         <h3>Task Details</h3>
-        <button id="close-detail" class="detail-close">
+        <button id="close-detail" class="detail-close" aria-label="Close detail panel">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M6 18L18 6M6 6l12 12"/>
           </svg>
@@ -2053,6 +2242,8 @@
 
       progressPercent.textContent = `${percent}%`;
       progressBar.style.width = `${percent}%`;
+      const hasInProgress = currentTasks.some(t => t.status === 'in_progress');
+      progressBar.classList.toggle('shimmer', hasInProgress && percent < 100);
 
       updateOwnerFilter();
       renderKanban();
@@ -2068,12 +2259,16 @@
 
       return `
         <div
+          role="listitem"
+          tabindex="0"
           onclick="showTaskDetail('${task.id}', '${actualSessionId}')"
-          class="task-card ${statusClass} ${isBlocked ? 'blocked' : ''}">
+          onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showTaskDetail('${task.id}','${actualSessionId}')}"
+          class="task-card ${statusClass} ${isBlocked ? 'blocked' : ''}"
+          aria-label="${escapeHtml(task.subject)} — ${task.status.replace('_',' ')}">
           <div class="task-id">
             <span>#${taskId}</span>
             ${isBlocked ? '<span class="task-badge blocked">Blocked</span>' : ''}
-            ${task.owner ? `<span class="task-owner-badge">${escapeHtml(task.owner)}</span>` : ''}
+            ${task.owner ? (() => { const c = getOwnerColor(task.owner); return `<span class="task-owner-badge" style="background:${c.bg};color:${c.color}">${escapeHtml(task.owner)}</span>`; })() : ''}
           </div>
           <div class="task-title">${escapeHtml(task.subject)}</div>
           ${sessionLabel ? `<div class="task-session">${escapeHtml(sessionLabel)}</div>` : ''}
@@ -2097,17 +2292,19 @@
       inProgressCount.textContent = inProgress.length;
       completedCount.textContent = completed.length;
 
+      const emptyIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>`;
+
       pendingTasks.innerHTML = pending.length > 0
         ? pending.map(renderTaskCard).join('')
-        : '<div class="column-empty">No pending tasks</div>';
+        : `<div class="column-empty">${emptyIcon}<div>No pending tasks</div></div>`;
 
       inProgressTasks.innerHTML = inProgress.length > 0
         ? inProgress.map(renderTaskCard).join('')
-        : '<div class="column-empty">No active tasks</div>';
+        : `<div class="column-empty">${emptyIcon}<div>No active tasks</div></div>`;
 
       completedTasks.innerHTML = completed.length > 0
         ? completed.map(renderTaskCard).join('')
-        : '<div class="column-empty">No completed tasks</div>';
+        : `<div class="column-empty">${emptyIcon}<div>No completed tasks</div></div>`;
     }
 
     function getAvailableTasksOptions(currentTaskId = null) {
@@ -2182,7 +2379,7 @@
               <h2 class="detail-title">${escapeHtml(task.subject)}</h2>
             </div>
             <div style="display: flex; gap: 8px;">
-              <button id="delete-task-btn" class="icon-btn" title="Delete task (D)" style="color: #ef4444; border-color: #ef4444;">
+              <button id="delete-task-btn" class="icon-btn" title="Delete task (D)" aria-label="Delete task" style="color: #ef4444; border-color: #ef4444;">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
                 </svg>
@@ -2203,7 +2400,7 @@
         ${task.owner ? `
           <div class="detail-section">
             <div class="detail-label">Owner</div>
-            <div style="font-size: 13px; color: var(--team);">${escapeHtml(task.owner)}</div>
+            <div style="font-size: 14px; color: ${getOwnerColor(task.owner).color}; font-weight: 500;">${escapeHtml(task.owner)}</div>
           </div>
         ` : ''}
 
@@ -2239,7 +2436,7 @@
         </div>
 
         <div class="detail-section note-section">
-          <div class="detail-label">Add Note</div>
+          <label for="note-input" class="detail-label">Add Note</label>
           <form class="note-form" onsubmit="addNote(event, '${task.id}', '${actualSessionId}')">
             <textarea id="note-input" class="note-input" placeholder="Add a note for Claude..." rows="3"></textarea>
             <button type="submit" class="note-submit">Add Note</button>
@@ -2522,6 +2719,28 @@
       return div.innerHTML;
     }
 
+    const ownerColors = [
+      { bg: 'rgba(37, 99, 235, 0.14)',  color: '#1d5bbf' },  // blue
+      { bg: 'rgba(168, 85, 247, 0.14)', color: '#7c3aed' },  // purple
+      { bg: 'rgba(14, 165, 133, 0.14)', color: '#0d7d65' },  // teal
+      { bg: 'rgba(220, 80, 30, 0.14)',  color: '#c04a1a' },  // red-orange
+      { bg: 'rgba(202, 138, 4, 0.14)',  color: '#92700c' },   // amber
+      { bg: 'rgba(219, 39, 119, 0.14)', color: '#b5246a' },  // pink
+      { bg: 'rgba(22, 163, 74, 0.14)',  color: '#15803d' },   // green
+      { bg: 'rgba(99, 102, 241, 0.14)', color: '#4f46e5' },  // indigo
+    ];
+    const ownerColorCache = {};
+    function getOwnerColor(name) {
+      if (ownerColorCache[name]) return ownerColorCache[name];
+      let hash = 5381;
+      for (let i = 0; i < name.length; i++) {
+        hash = ((hash * 33) ^ name.charCodeAt(i)) | 0;
+      }
+      const c = ownerColors[Math.abs(hash) % ownerColors.length];
+      ownerColorCache[name] = c;
+      return c;
+    }
+
     function filterBySessions(value) {
       sessionFilter = value;
       localStorage.setItem('sessionFilter', sessionFilter);
@@ -2554,18 +2773,38 @@
     }
 
     function toggleTheme() {
-      const isLight = document.body.classList.toggle('light');
-      localStorage.setItem('theme', isLight ? 'light' : 'dark');
+      const isCurrentlyLight = document.body.classList.contains('light');
+      if (isCurrentlyLight) {
+        document.body.classList.remove('light');
+        document.body.classList.add('dark-forced');
+        localStorage.setItem('theme', 'dark');
+      } else {
+        document.body.classList.add('light');
+        document.body.classList.remove('dark-forced');
+        localStorage.setItem('theme', 'light');
+      }
+      updateThemeIcon();
+    }
+
+    function updateThemeIcon() {
+      const saved = localStorage.getItem('theme');
+      const isLight = document.body.classList.contains('light') ||
+        (!saved && window.matchMedia('(prefers-color-scheme: light)').matches);
       document.getElementById('theme-icon-dark').style.display = isLight ? 'none' : 'block';
       document.getElementById('theme-icon-light').style.display = isLight ? 'block' : 'none';
     }
 
     function loadTheme() {
-      if (localStorage.getItem('theme') === 'light') {
+      const saved = localStorage.getItem('theme');
+      if (saved === 'light') {
         document.body.classList.add('light');
-        document.getElementById('theme-icon-dark').style.display = 'none';
-        document.getElementById('theme-icon-light').style.display = 'block';
+        document.body.classList.remove('dark-forced');
+      } else if (saved === 'dark') {
+        document.body.classList.remove('light');
+        document.body.classList.add('dark-forced');
       }
+      // If no saved preference, system prefers-color-scheme CSS handles it
+      updateThemeIcon();
     }
 
     function loadPreferences() {
@@ -2696,7 +2935,7 @@
     <div class="modal" onclick="event.stopPropagation()">
       <div class="modal-header">
         <h3 class="modal-title">Keyboard Shortcuts</h3>
-        <button class="modal-close" onclick="closeHelpModal()">
+        <button class="modal-close" aria-label="Close dialog" onclick="closeHelpModal()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 6L6 18M6 6l12 12"/>
           </svg>
@@ -2739,7 +2978,7 @@
     <div class="modal" onclick="event.stopPropagation()" style="max-width: 400px;">
       <div class="modal-header">
         <h3 class="modal-title">Delete Task</h3>
-        <button class="modal-close" onclick="closeDeleteConfirmModal()">
+        <button class="modal-close" aria-label="Close dialog" onclick="closeDeleteConfirmModal()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 6L6 18M6 6l12 12"/>
           </svg>
@@ -2760,7 +2999,7 @@
     <div class="modal" onclick="event.stopPropagation()" style="max-width: 500px;">
       <div class="modal-header">
         <h3 class="modal-title">Delete All Tasks</h3>
-        <button class="modal-close" onclick="closeDeleteSessionTasksModal()">
+        <button class="modal-close" aria-label="Close dialog" onclick="closeDeleteSessionTasksModal()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 6L6 18M6 6l12 12"/>
           </svg>
@@ -2782,7 +3021,7 @@
     <div class="modal" onclick="event.stopPropagation()" style="max-width: 500px;">
       <div class="modal-header">
         <h3 class="modal-title">Deletion Result</h3>
-        <button class="modal-close" onclick="closeDeleteResultModal()">
+        <button class="modal-close" aria-label="Close dialog" onclick="closeDeleteResultModal()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 6L6 18M6 6l12 12"/>
           </svg>
@@ -2803,7 +3042,7 @@
     <div class="modal" onclick="event.stopPropagation()" style="max-width: 520px; max-height: 80vh; display: flex; flex-direction: column;">
       <div class="modal-header">
         <h3 id="team-modal-title" class="modal-title">Team</h3>
-        <button class="modal-close" onclick="closeTeamModal()">
+        <button class="modal-close" aria-label="Close dialog" onclick="closeTeamModal()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 6L6 18M6 6l12 12"/>
           </svg>
@@ -2828,7 +3067,7 @@
           </svg>
           Cannot Start Blocked Task
         </h3>
-        <button class="modal-close" onclick="closeBlockedTaskModal()">
+        <button class="modal-close" aria-label="Close dialog" onclick="closeBlockedTaskModal()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 6L6 18M6 6l12 12"/>
           </svg>
