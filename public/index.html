@@ -27,6 +27,8 @@
       --success-dim: rgba(62, 207, 142, 0.12);
       --warning: #f0b429;
       --warning-dim: rgba(240, 180, 41, 0.12);
+      --team: #60a5fa;
+      --team-dim: var(--team-dim);
       --mono: 'IBM Plex Mono', monospace;
       --serif: 'Playfair Display', serif;
     }
@@ -859,9 +861,9 @@
     }
 
     .detail-box.blocks {
-      background: rgba(96, 165, 250, 0.1);
-      border: 1px solid rgba(96, 165, 250, 0.2);
-      color: #60a5fa;
+      background: var(--team-dim);
+      border: 1px solid rgba(96, 165, 250, 0.25);
+      color: var(--team);
     }
 
     .detail-desc {
@@ -967,6 +969,130 @@
 
     .note-submit:hover {
       filter: brightness(1.1);
+    }
+
+    /* Team badge */
+    .team-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 3px;
+      background: var(--team-dim);
+      color: var(--team);
+      flex-shrink: 0;
+    }
+
+    .team-badge .member-count {
+      font-weight: 600;
+    }
+
+    .team-info-btn {
+      width: 22px;
+      height: 22px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--team);
+      cursor: pointer;
+      font-size: 11px;
+      flex-shrink: 0;
+      transition: all 0.15s ease;
+    }
+
+    .team-info-btn:hover {
+      background: var(--team-dim);
+      border-color: var(--team);
+    }
+
+    /* Task owner badge */
+    .task-owner-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 9px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      background: var(--team-dim);
+      color: var(--team);
+      text-transform: none;
+      letter-spacing: 0;
+    }
+
+    /* Team modal member card */
+    .team-member-card {
+      padding: 12px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+
+    .team-member-card .member-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .team-member-card .member-detail {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-top: 4px;
+    }
+
+    .team-member-card .member-tasks {
+      font-size: 11px;
+      color: var(--accent);
+      margin-top: 4px;
+    }
+
+    .team-modal-desc {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-style: italic;
+      margin-bottom: 16px;
+    }
+
+    .team-modal-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* Owner filter */
+    .owner-filter-bar {
+      display: none;
+      padding: 8px 24px 0;
+      justify-content: flex-end;
+    }
+
+    .owner-filter-bar.visible {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .owner-filter-bar label {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+    }
+
+    .owner-filter-bar .filter-dropdown {
+      flex: none;
+      width: auto;
+      max-width: 180px;
     }
 
     /* Light mode */
@@ -1367,6 +1493,12 @@
           </div>
         </header>
 
+        <div id="owner-filter-bar" class="owner-filter-bar">
+          <label>Filter by owner:</label>
+          <select id="owner-filter" class="filter-dropdown" onchange="filterByOwner(this.value)">
+            <option value="">All Members</option>
+          </select>
+        </div>
         <div class="kanban">
           <div class="kanban-column">
             <div class="column-header">
@@ -1424,6 +1556,7 @@
     let searchQuery = ''; // Search query for fuzzy search
     let allTasksCache = []; // Cache all tasks for search
     let bulkDeleteSessionId = null; // Track session for bulk delete
+    let ownerFilter = '';
 
     // DOM
     const sessionsList = document.getElementById('sessions-list');
@@ -1720,17 +1853,16 @@
         if (res.ok) {
           currentTasks = await res.json();
         } else if (res.status === 404) {
-          // Session has no tasks directory yet - start with empty task list
           currentTasks = [];
         } else {
           throw new Error(`Failed to fetch tasks: ${res.status}`);
         }
 
         currentSessionId = sessionId;
+        ownerFilter = '';
         renderSession();
       } catch (error) {
         console.error('Failed to fetch tasks:', error);
-        // Clear tasks on error to avoid showing stale data
         currentTasks = [];
         currentSessionId = sessionId;
         renderSession();
@@ -1741,6 +1873,7 @@
       try {
         viewMode = 'all';
         currentSessionId = null;
+        ownerFilter = '';
         const res = await fetch('/api/tasks/all');
         let tasks = await res.json();
         if (filterProject) {
@@ -1757,6 +1890,7 @@
     function renderAllTasks() {
       noSession.style.display = 'none';
       sessionView.classList.add('visible');
+      document.getElementById('owner-filter-bar').classList.remove('visible');
 
       const totalTasks = currentTasks.length;
       const completed = currentTasks.filter(t => t.status === 'completed').length;
@@ -1857,10 +1991,15 @@
         // Build tooltip
         const tooltip = [timeDisplay, gitBranch ? `Branch: ${gitBranch}` : ''].filter(Boolean).join(' | ');
 
+        const isTeam = session.isTeam;
+        const memberCount = session.memberCount || 0;
+
         return `
           <button onclick="fetchTasks('${session.id}')" class="session-item ${isActive ? 'active' : ''}" title="${tooltip}">
             <div class="session-name">
               <span>${escapeHtml(primaryName)}</span>
+              ${isTeam ? `<span class="team-badge" title="${memberCount} team members">👥 <span class="member-count">${memberCount}</span></span>` : ''}
+              ${isTeam ? `<span class="team-info-btn" onclick="event.stopPropagation(); showTeamModalForSession('${session.id}')" title="View team info">ℹ</span>` : ''}
               ${hasInProgress ? '<span class="pulse"></span>' : ''}
             </div>
             ${secondaryName ? `<div class="session-secondary">${escapeHtml(secondaryName)}</div>` : ''}
@@ -1915,6 +2054,7 @@
       progressPercent.textContent = `${percent}%`;
       progressBar.style.width = `${percent}%`;
 
+      updateOwnerFilter();
       renderKanban();
       renderSessions();
     }
@@ -1933,6 +2073,7 @@
           <div class="task-id">
             <span>#${taskId}</span>
             ${isBlocked ? '<span class="task-badge blocked">Blocked</span>' : ''}
+            ${task.owner ? `<span class="task-owner-badge">${escapeHtml(task.owner)}</span>` : ''}
           </div>
           <div class="task-title">${escapeHtml(task.subject)}</div>
           ${sessionLabel ? `<div class="task-session">${escapeHtml(sessionLabel)}</div>` : ''}
@@ -1944,9 +2085,13 @@
     }
 
     function renderKanban() {
-      const pending = currentTasks.filter(t => t.status === 'pending');
-      const inProgress = currentTasks.filter(t => t.status === 'in_progress');
-      const completed = currentTasks.filter(t => t.status === 'completed');
+      let filtered = currentTasks;
+      if (ownerFilter) {
+        filtered = filtered.filter(t => t.owner === ownerFilter);
+      }
+      const pending = filtered.filter(t => t.status === 'pending');
+      const inProgress = filtered.filter(t => t.status === 'in_progress');
+      const completed = filtered.filter(t => t.status === 'completed');
 
       pendingCount.textContent = pending.length;
       inProgressCount.textContent = inProgress.length;
@@ -2054,6 +2199,13 @@
           ${isBlocked && task.status !== 'in_progress' ? '<div style="font-size: 10px; color: var(--warning); margin-top: 4px;">Blocked by dependencies</div>' : ''}
           <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">Status is controlled by Claude Code</div>
         </div>
+
+        ${task.owner ? `
+          <div class="detail-section">
+            <div class="detail-label">Owner</div>
+            <div style="font-size: 13px; color: var(--team);">${escapeHtml(task.owner)}</div>
+          </div>
+        ` : ''}
 
         ${task.activeForm && task.status === 'in_progress' ? `
           <div class="detail-section">
@@ -2332,9 +2484,18 @@
               console.error('[SSE] fetchSessions failed:', err);
             });
 
-            // For metadata-update or matching sessionId, refresh current session view
             if (currentSessionId && (data.type === 'metadata-update' || data.sessionId === currentSessionId)) {
               console.log('[SSE] Refreshing current session view:', currentSessionId);
+              fetchTasks(currentSessionId);
+            }
+          }
+
+          if (data.type === 'team-update') {
+            console.log('[SSE] Team update:', data.teamName);
+            fetchSessions().catch(err => {
+              console.error('[SSE] fetchSessions failed:', err);
+            });
+            if (currentSessionId && data.teamName === currentSessionId) {
               fetchTasks(currentSessionId);
             }
           }
@@ -2410,6 +2571,108 @@
     function loadPreferences() {
       document.getElementById('session-filter').value = sessionFilter;
       document.getElementById('session-limit').value = sessionLimit;
+    }
+
+    async function showTeamModalForSession(sessionId) {
+      const session = sessions.find(s => s.id === sessionId);
+      if (!session || !session.isTeam) return;
+      try {
+        const res = await fetch(`/api/teams/${sessionId}`);
+        if (!res.ok) return;
+        const teamConfig = await res.json();
+        showTeamModal(teamConfig, currentSessionId === sessionId ? currentTasks : []);
+      } catch (e) {
+        console.error('Failed to fetch team config:', e);
+      }
+    }
+
+    function showTeamModal(teamConfig, tasks) {
+      const modal = document.getElementById('team-modal');
+      const titleEl = document.getElementById('team-modal-title');
+      const bodyEl = document.getElementById('team-modal-body');
+
+      titleEl.textContent = `Team: ${teamConfig.team_name || teamConfig.name || 'Unknown'}`;
+
+      const ownerCounts = {};
+      tasks.forEach(t => {
+        if (t.owner) {
+          ownerCounts[t.owner] = (ownerCounts[t.owner] || 0) + 1;
+        }
+      });
+
+      const members = teamConfig.members || [];
+      const description = teamConfig.description || '';
+      const lead = members.find(m => m.agentType === 'team-lead' || m.name === 'team-lead');
+
+      let html = '';
+      if (description) {
+        html += `<div class="team-modal-desc">"${escapeHtml(description)}"</div>`;
+      }
+
+      html += `<div style="font-size: 12px; font-weight: 500; color: var(--text-secondary); margin-bottom: 10px;">Members (${members.length})</div>`;
+
+      members.forEach(member => {
+        const taskCount = ownerCounts[member.name] || 0;
+        html += `
+          <div class="team-member-card">
+            <div class="member-name">🟢 ${escapeHtml(member.name)}</div>
+            <div class="member-detail">Role: ${escapeHtml(member.agentType || 'unknown')}</div>
+            ${member.model ? `<div class="member-detail">Model: ${escapeHtml(member.model)}</div>` : ''}
+            <div class="member-tasks">Tasks: ${taskCount} assigned</div>
+          </div>
+        `;
+      });
+
+      const metaParts = [];
+      if (teamConfig.created_at) {
+        metaParts.push(`Created: ${new Date(teamConfig.created_at).toLocaleString()}`);
+      }
+      if (lead) {
+        metaParts.push(`Lead: ${lead.name}`);
+      }
+      if (teamConfig.working_dir) {
+        metaParts.push(`Working dir: ${teamConfig.working_dir}`);
+      }
+      if (metaParts.length > 0) {
+        html += `<div class="team-modal-meta">${metaParts.map(p => escapeHtml(p)).join('<br>')}</div>`;
+      }
+
+      bodyEl.innerHTML = html;
+      modal.classList.add('visible');
+
+      const keyHandler = (e) => {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          closeTeamModal();
+          document.removeEventListener('keydown', keyHandler);
+        }
+      };
+      document.addEventListener('keydown', keyHandler);
+    }
+
+    function closeTeamModal() {
+      document.getElementById('team-modal').classList.remove('visible');
+    }
+
+    function updateOwnerFilter() {
+      const bar = document.getElementById('owner-filter-bar');
+      const select = document.getElementById('owner-filter');
+
+      const session = sessions.find(s => s.id === currentSessionId);
+      if (!session || !session.isTeam) {
+        bar.classList.remove('visible');
+        return;
+      }
+
+      bar.classList.add('visible');
+      const owners = [...new Set(currentTasks.map(t => t.owner).filter(Boolean))].sort();
+      select.innerHTML = '<option value="">All Members</option>' +
+        owners.map(o => `<option value="${escapeHtml(o)}"${o === ownerFilter ? ' selected' : ''}>${escapeHtml(o)}</option>`).join('');
+    }
+
+    function filterByOwner(value) {
+      ownerFilter = value;
+      renderKanban();
     }
 
     // Init
@@ -2531,6 +2794,24 @@
       </div>
       <div class="modal-footer">
         <button class="btn btn-primary" onclick="closeDeleteResultModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Team Info Modal -->
+  <div id="team-modal" class="modal-overlay" onclick="closeTeamModal()">
+    <div class="modal" onclick="event.stopPropagation()" style="max-width: 520px; max-height: 80vh; display: flex; flex-direction: column;">
+      <div class="modal-header">
+        <h3 id="team-modal-title" class="modal-title">Team</h3>
+        <button class="modal-close" onclick="closeTeamModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div id="team-modal-body" class="modal-body" style="overflow-y: auto; flex: 1;"></div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="closeTeamModal()">Close</button>
       </div>
     </div>
   </div>

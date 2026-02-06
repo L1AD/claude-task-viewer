@@ -30,8 +30,29 @@ function getClaudeDir() {
 const CLAUDE_DIR = getClaudeDir();
 const TASKS_DIR = path.join(CLAUDE_DIR, 'tasks');
 const PROJECTS_DIR = path.join(CLAUDE_DIR, 'projects');
+const TEAMS_DIR = path.join(CLAUDE_DIR, 'teams');
 
-// Get running Claude Code containers with their project paths
+function isTeamSession(sessionId) {
+  return existsSync(path.join(TEAMS_DIR, sessionId, 'config.json'));
+}
+
+const teamConfigCache = new Map();
+const TEAM_CACHE_TTL = 5000;
+
+function loadTeamConfig(teamName) {
+  const cached = teamConfigCache.get(teamName);
+  if (cached && Date.now() - cached.ts < TEAM_CACHE_TTL) return cached.data;
+  try {
+    const configPath = path.join(TEAMS_DIR, teamName, 'config.json');
+    if (!existsSync(configPath)) return null;
+    const data = JSON.parse(readFileSync(configPath, 'utf8'));
+    teamConfigCache.set(teamName, { data, ts: Date.now() });
+    return data;
+  } catch (e) {
+    return null;
+  }
+}
+
 // SSE clients for live updates
 const clients = new Set();
 
@@ -231,6 +252,9 @@ app.get('/api/sessions', async (req, res) => {
           // Use newest task file mtime, or fall back to directory mtime if no tasks
           const modifiedAt = newestTaskMtime ? newestTaskMtime.toISOString() : stat.mtime.toISOString();
 
+          const isTeam = isTeamSession(entry.name);
+          const memberCount = isTeam ? (loadTeamConfig(entry.name)?.members?.length || 0) : 0;
+
           sessionsMap.set(entry.name, {
             id: entry.name,
             name: getSessionDisplayName(entry.name, meta),
@@ -243,7 +267,9 @@ app.get('/api/sessions', async (req, res) => {
             inProgress,
             pending,
             createdAt: meta.created || null,
-            modifiedAt: modifiedAt
+            modifiedAt: modifiedAt,
+            isTeam,
+            memberCount
           });
         }
       }
@@ -294,6 +320,13 @@ app.get('/api/sessions/:sessionId', async (req, res) => {
     console.error('Error getting session:', error);
     res.status(500).json({ error: 'Failed to get session' });
   }
+});
+
+// API: Get team config
+app.get('/api/teams/:name', (req, res) => {
+  const config = loadTeamConfig(req.params.name);
+  if (!config) return res.status(404).json({ error: 'Team not found' });
+  res.json(config);
 });
 
 // API: Get all tasks across all sessions
@@ -449,6 +482,24 @@ watcher.on('all', (event, filePath) => {
 });
 
 console.log(`Watching for changes in: ${TASKS_DIR}`);
+
+// Watch teams directory for config changes
+const teamsWatcher = chokidar.watch(TEAMS_DIR, {
+  persistent: true,
+  ignoreInitial: true,
+  depth: 3
+});
+
+teamsWatcher.on('all', (event, filePath) => {
+  if (filePath.endsWith('.json')) {
+    const relativePath = path.relative(TEAMS_DIR, filePath);
+    const teamName = relativePath.split(path.sep)[0];
+    teamConfigCache.delete(teamName);
+    broadcast({ type: 'team-update', teamName });
+  }
+});
+
+console.log(`Watching for team changes in: ${TEAMS_DIR}`);
 
 // Also watch projects dir for metadata changes
 const projectsWatcher = chokidar.watch(PROJECTS_DIR, {
