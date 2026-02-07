@@ -807,21 +807,21 @@
     .sprint-import-btn {
       width: 100%;
       margin-top: 8px;
-      padding: 8px;
-      background: var(--bg-elevated);
-      border: 1px dashed var(--border);
+      padding: 10px 12px;
+      background: var(--accent-dim);
+      border: 1px solid var(--accent);
       border-radius: 6px;
-      color: var(--text-tertiary);
+      color: var(--accent);
       font-family: var(--mono);
-      font-size: 11px;
+      font-size: 12px;
+      font-weight: 500;
       cursor: pointer;
       transition: all 0.15s ease;
     }
 
     .sprint-import-btn:hover {
-      border-color: var(--accent);
-      color: var(--accent);
-      background: var(--accent-dim);
+      background: var(--accent);
+      color: white;
     }
 
     /* Sidebar tabs */
@@ -1522,12 +1522,14 @@
             <span>Sprint Status</span>
             <button onclick="loadSprintStatus()" style="background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; padding: 3px 8px; font-size: 10px; color: var(--text-secondary); cursor: pointer; font-family: var(--mono);">Refresh</button>
           </div>
+          <div style="padding: 0 12px;">
+            <button id="sprint-import-btn" class="sprint-import-btn" onclick="showSprintImportModal()" style="display: none;">
+              Import Pulse Tasks to Sprint
+            </button>
+          </div>
           <div id="sprint-panel" class="sprint-panel">
             <div class="live-empty">Select a project to view sprint</div>
           </div>
-          <button id="sprint-import-btn" class="sprint-import-btn" onclick="showSprintImportModal()" style="display: none; margin: 0 12px 12px;">
-            Import Pulse Tasks to Sprint
-          </button>
         </div>
       </div>
 
