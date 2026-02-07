@@ -2835,9 +2835,38 @@
 
       const modal = document.getElementById('sprint-import-modal');
       document.getElementById('sprint-import-tasks-list').innerHTML = tasksList;
-      document.getElementById('sprint-import-target').textContent = `Sprint ${targetSprint}`;
       modal.dataset.project = project;
       modal.dataset.sprint = targetSprint;
+
+      // Populate sprint dropdown
+      const sprintSelect = document.getElementById('sprint-import-select');
+      const allSprints = sprintData?.sprints || [];
+      const nextSprintNum = allSprints.length > 0 ? Math.max(...allSprints.map(s => s.number)) + 1 : 1;
+
+      let sprintOptions = '';
+
+      // Active sprints first
+      const active = allSprints.filter(s => s.status === 'in-progress');
+      for (const s of active) {
+        const label = `Sprint ${s.number} (In Progress)${s.start ? ` — ${s.start} → ${s.end}` : ''}`;
+        const selected = s.number === targetSprint ? ' selected' : '';
+        sprintOptions += `<option value="${s.number}"${selected}>${label}</option>`;
+      }
+
+      // New sprint option
+      sprintOptions += `<option value="${nextSprintNum}"${active.length === 0 ? ' selected' : ''}>Sprint ${nextSprintNum} (New)</option>`;
+
+      // Done sprints (collapsed)
+      const done = allSprints.filter(s => s.status === 'done').slice(-5).reverse();
+      if (done.length > 0) {
+        sprintOptions += '<optgroup label="Completed">';
+        for (const s of done) {
+          sprintOptions += `<option value="${s.number}">Sprint ${s.number} (Done)</option>`;
+        }
+        sprintOptions += '</optgroup>';
+      }
+
+      sprintSelect.innerHTML = sprintOptions;
       modal.classList.add('visible');
 
       updateImportCount();
@@ -3034,10 +3063,17 @@
         </button>
       </div>
       <div class="modal-body">
-        <p style="margin: 0 0 8px 0; color: var(--text-primary);">Select tasks to import to <strong id="sprint-import-target">Sprint</strong>:</p>
-        <div style="display: flex; gap: 12px; margin-bottom: 12px;">
-          <button onclick="document.querySelectorAll('[data-import-idx]').forEach(c=>{c.checked=true}); updateImportCount();" style="background: none; border: none; color: var(--accent); font-family: var(--mono); font-size: 11px; cursor: pointer; padding: 0;">Select all</button>
-          <button onclick="document.querySelectorAll('[data-import-idx]').forEach(c=>{c.checked=false}); updateImportCount();" style="background: none; border: none; color: var(--text-tertiary); font-family: var(--mono); font-size: 11px; cursor: pointer; padding: 0;">Clear all</button>
+        <div style="margin-bottom: 12px;">
+          <label style="display: block; font-size: 11px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px;">Target Sprint</label>
+          <select id="sprint-import-select" class="form-input" style="font-size: 13px; padding: 8px 12px;" onchange="document.getElementById('sprint-import-modal').dataset.sprint = this.value">
+          </select>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+          <span style="font-size: 12px; color: var(--text-primary);">Select tasks to import:</span>
+          <div style="display: flex; gap: 12px;">
+            <button onclick="document.querySelectorAll('[data-import-idx]').forEach(c=>{c.checked=true}); updateImportCount();" style="background: none; border: none; color: var(--accent); font-family: var(--mono); font-size: 11px; cursor: pointer; padding: 0;">Select all</button>
+            <button onclick="document.querySelectorAll('[data-import-idx]').forEach(c=>{c.checked=false}); updateImportCount();" style="background: none; border: none; color: var(--text-tertiary); font-family: var(--mono); font-size: 11px; cursor: pointer; padding: 0;">Clear all</button>
+          </div>
         </div>
         <div id="sprint-import-tasks-list" style="max-height: 300px; overflow-y: auto;" onchange="updateImportCount()"></div>
         <p style="margin: 12px 0 0 0; font-size: 11px; color: var(--text-muted);">Selected tasks will be added to sprint-status.yaml as backlog stories.</p>
