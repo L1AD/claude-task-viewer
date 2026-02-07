@@ -6,6 +6,7 @@ const fs = require('fs').promises;
 const { existsSync, readdirSync, readFileSync, statSync, createReadStream } = require('fs');
 const readline = require('readline');
 const chokidar = require('chokidar');
+const yaml = require('js-yaml');
 const os = require('os');
 
 const app = express();
@@ -400,6 +401,208 @@ app.delete('/api/tasks/:sessionId/:taskId', async (req, res) => {
   } catch (error) {
     console.error('Error deleting task:', error);
     res.status(500).json({ error: 'Failed to delete task' });
+  }
+});
+
+// API: Get sprint status from a project's sprint-status.yaml
+app.get('/api/sprint-status', async (req, res) => {
+  try {
+    const projectPath = req.query.project;
+    if (!projectPath) {
+      return res.status(400).json({ error: 'project query parameter required' });
+    }
+
+    // Search common locations for sprint-status.yaml
+    const candidates = [
+      path.join(projectPath, 'docs', 'sprint-artifacts', 'sprint-status.yaml'),
+      path.join(projectPath, 'docs', 'sprint-status.yaml'),
+      path.join(projectPath, 'sprint-status.yaml'),
+    ];
+
+    let sprintFile = null;
+    for (const candidate of candidates) {
+      if (existsSync(candidate)) {
+        sprintFile = candidate;
+        break;
+      }
+    }
+
+    if (!sprintFile) {
+      return res.status(404).json({ error: 'sprint-status.yaml not found', searched: candidates });
+    }
+
+    const content = await fs.readFile(sprintFile, 'utf8');
+    const data = yaml.load(content);
+
+    // Parse tasks
+    const tasks = data.tasks || {};
+    const taskList = Object.entries(tasks).map(([key, val]) => ({
+      key,
+      status: val.status || 'unknown',
+      description: val.description || '',
+    }));
+
+    const doneCount = taskList.filter(t => t.status === 'done').length;
+    const totalCount = taskList.length;
+
+    // Parse previous sprints
+    const previousSprints = [];
+    if (data.previous_sprints) {
+      for (const [key, val] of Object.entries(data.previous_sprints)) {
+        const num = key.match(/sprint_(\d+)/);
+        previousSprints.push({
+          number: num ? parseInt(num[1]) : 0,
+          name: val.name || key,
+          status: val.status || 'unknown',
+        });
+      }
+    }
+    previousSprints.sort((a, b) => a.number - b.number);
+
+    // Current sprint
+    const currentSprint = {
+      number: data.current_sprint || null,
+      name: data.sprint_name || null,
+      goal: data.sprint_goal || null,
+      status: data.status || 'unknown',
+    };
+
+    // Metrics
+    const metrics = data.metrics || {};
+
+    // Carryover items
+    const carryover = data.carryover || [];
+
+    res.json({
+      currentSprint,
+      tasks: taskList,
+      metrics: {
+        tasksCompleted: metrics.tasks_completed || doneCount,
+        tasksTotal: metrics.tasks_total || totalCount,
+        testCases: metrics.new_test_cases || 0,
+      },
+      previousSprints,
+      carryover,
+      filePath: sprintFile,
+    });
+  } catch (error) {
+    console.error('Error reading sprint status:', error);
+    res.status(500).json({ error: 'Failed to read sprint status' });
+  }
+});
+
+// API: Import tasks into sprint-status.yaml
+app.post('/api/sprint-import', async (req, res) => {
+  try {
+    const { project, sprintNumber, tasks } = req.body;
+
+    if (!project || sprintNumber === undefined || !tasks || !Array.isArray(tasks)) {
+      return res.status(400).json({ error: 'project, sprintNumber, and tasks[] required' });
+    }
+
+    // Find sprint-status.yaml
+    const candidates = [
+      path.join(project, 'docs', 'sprint-artifacts', 'sprint-status.yaml'),
+      path.join(project, 'docs', 'sprint-status.yaml'),
+      path.join(project, 'sprint-status.yaml'),
+    ];
+
+    let sprintFile = null;
+    for (const candidate of candidates) {
+      if (existsSync(candidate)) {
+        sprintFile = candidate;
+        break;
+      }
+    }
+
+    if (!sprintFile) {
+      return res.status(404).json({ error: 'sprint-status.yaml not found' });
+    }
+
+    const content = await fs.readFile(sprintFile, 'utf8');
+    const data = yaml.load(content);
+
+    // Map task status to sprint status
+    const statusMap = {
+      'pending': 'backlog',
+      'in_progress': 'in-progress',
+      'completed': 'done',
+    };
+
+    // Ensure tasks map exists
+    if (!data.tasks) {
+      data.tasks = {};
+    }
+
+    const imported = [];
+    for (const task of tasks) {
+      const storyKey = task.storyKey || `sprint-${sprintNumber}-${task.subject
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .slice(0, 50)}`;
+
+      // Skip if key already exists
+      if (data.tasks[storyKey]) {
+        continue;
+      }
+
+      const sprintStatus = statusMap[task.status] || 'backlog';
+      data.tasks[storyKey] = {
+        status: sprintStatus,
+        description: task.description || task.subject,
+        source: 'product-pulse',
+      };
+      imported.push({ storyKey, status: sprintStatus, subject: task.subject });
+    }
+
+    // Update metrics
+    if (!data.metrics) data.metrics = {};
+    data.metrics.tasks_total = (data.metrics.tasks_total || 0) + imported.length;
+
+    // Update sprint number if needed
+    if (sprintNumber > (data.current_sprint || 0)) {
+      data.current_sprint = sprintNumber;
+    }
+
+    // Write back
+    await fs.writeFile(sprintFile, yaml.dump(data, { lineWidth: -1 }));
+
+    res.json({ success: true, imported, filePath: sprintFile });
+  } catch (error) {
+    console.error('Error importing to sprint:', error);
+    res.status(500).json({ error: 'Failed to import to sprint' });
+  }
+});
+
+// API: Set task priority
+app.post('/api/tasks/:sessionId/:taskId/priority', async (req, res) => {
+  try {
+    const { sessionId, taskId } = req.params;
+    const { priority } = req.body;
+
+    if (!priority || !['P1', 'P2', 'P3'].includes(priority)) {
+      return res.status(400).json({ error: 'priority must be P1, P2, or P3' });
+    }
+
+    const taskPath = path.join(TASKS_DIR, sessionId, `${taskId}.json`);
+
+    if (!existsSync(taskPath)) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    const task = JSON.parse(await fs.readFile(taskPath, 'utf8'));
+
+    // Update metadata with priority
+    if (!task.metadata) task.metadata = {};
+    task.metadata.priority = priority;
+
+    await fs.writeFile(taskPath, JSON.stringify(task, null, 2));
+
+    res.json({ success: true, task });
+  } catch (error) {
+    console.error('Error setting priority:', error);
+    res.status(500).json({ error: 'Failed to set priority' });
   }
 });
 

@@ -32,6 +32,7 @@
   "dependencies": {
     "chokidar": "^3.5.3",
     "express": "^4.18.2",
+    "js-yaml": "^4.1.1",
     "open": "^10.0.0"
   },
   "engines": {

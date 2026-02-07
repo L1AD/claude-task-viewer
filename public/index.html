@@ -673,6 +673,196 @@
       color: var(--warning);
     }
 
+    .task-badge.priority-P1 {
+      background: rgba(239, 68, 68, 0.15);
+      color: #ef4444;
+      font-weight: 600;
+    }
+
+    .task-badge.priority-P2 {
+      background: rgba(251, 146, 60, 0.15);
+      color: #fb923c;
+      font-weight: 600;
+    }
+
+    .task-badge.priority-P3 {
+      background: rgba(96, 165, 250, 0.15);
+      color: #60a5fa;
+      font-weight: 600;
+    }
+
+    .task-badge.source-pulse {
+      background: rgba(168, 85, 247, 0.15);
+      color: #a855f7;
+    }
+
+    /* Priority picker in detail panel */
+    .priority-picker {
+      display: flex;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .priority-btn {
+      padding: 4px 12px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--bg-elevated);
+      color: var(--text-secondary);
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .priority-btn:hover {
+      border-color: var(--text-muted);
+    }
+
+    .priority-btn.active-P1, .priority-btn.P1:hover {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: #ef4444;
+      color: #ef4444;
+    }
+
+    .priority-btn.active-P2, .priority-btn.P2:hover {
+      background: rgba(251, 146, 60, 0.15);
+      border-color: #fb923c;
+      color: #fb923c;
+    }
+
+    .priority-btn.active-P3, .priority-btn.P3:hover {
+      background: rgba(96, 165, 250, 0.15);
+      border-color: #60a5fa;
+      color: #60a5fa;
+    }
+
+    /* Sprint panel in sidebar */
+    .sprint-panel {
+      padding: 0 12px 12px;
+    }
+
+    .sprint-card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 6px;
+    }
+
+    .sprint-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .sprint-card-title {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .sprint-card-status {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+
+    .sprint-card-status.in-progress {
+      background: var(--accent-dim);
+      color: var(--accent);
+    }
+
+    .sprint-card-status.done {
+      background: var(--success-dim);
+      color: var(--success);
+    }
+
+    .sprint-card-status.backlog {
+      background: var(--bg-surface);
+      color: var(--text-muted);
+    }
+
+    .sprint-card-dates {
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .sprint-card-bar {
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .sprint-card-fill {
+      height: 100%;
+      background: var(--accent);
+      transition: width 0.3s ease;
+    }
+
+    .sprint-import-btn {
+      width: 100%;
+      margin-top: 8px;
+      padding: 8px;
+      background: var(--bg-elevated);
+      border: 1px dashed var(--border);
+      border-radius: 6px;
+      color: var(--text-tertiary);
+      font-family: var(--mono);
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .sprint-import-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: var(--accent-dim);
+    }
+
+    /* Sidebar tabs */
+    .sidebar-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sidebar-tab {
+      flex: 1;
+      padding: 10px;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--text-muted);
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .sidebar-tab:hover {
+      color: var(--text-secondary);
+    }
+
+    .sidebar-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
     .task-title {
       font-size: 13px;
       color: var(--text-primary);
@@ -1279,44 +1469,66 @@
         </div>
       </div>
 
-      <!-- Tasks -->
+      <!-- Tabs: Sessions / Sprint -->
       <div class="sidebar-section flex-1">
-        <div class="section-header">
-          <span>Sessions</span>
-          <button onclick="showAllTasks()" style="background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; padding: 3px 8px; font-size: 10px; color: var(--text-secondary); cursor: pointer; font-family: var(--mono);">All Tasks</button>
+        <div class="sidebar-tabs">
+          <button class="sidebar-tab active" onclick="switchSidebarTab('sessions')" id="tab-sessions">Sessions</button>
+          <button class="sidebar-tab" onclick="switchSidebarTab('sprint')" id="tab-sprint">Sprint</button>
         </div>
-        <div class="search-container">
-          <input
-            id="search-input"
-            type="text"
-            class="search-input"
-            placeholder="Search tasks, sessions, projects..."
-            oninput="handleSearch(this.value)"
-          />
-          <button id="search-clear-btn" class="search-clear" onclick="clearSearch()" title="Clear search">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M18 6L6 18M6 6l12 12"/>
-            </svg>
+
+        <!-- Sessions tab -->
+        <div id="tab-content-sessions" class="tab-content active">
+          <div class="section-header">
+            <span>Sessions</span>
+            <button onclick="showAllTasks()" style="background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; padding: 3px 8px; font-size: 10px; color: var(--text-secondary); cursor: pointer; font-family: var(--mono);">All Tasks</button>
+          </div>
+          <div class="search-container">
+            <input
+              id="search-input"
+              type="text"
+              class="search-input"
+              placeholder="Search tasks, sessions, projects..."
+              oninput="handleSearch(this.value)"
+            />
+            <button id="search-clear-btn" class="search-clear" onclick="clearSearch()" title="Clear search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+          <div class="filter-row">
+            <select id="project-filter" class="filter-dropdown" onchange="filterByProject(this.value)">
+              <option value="">All Projects</option>
+            </select>
+            <select id="session-filter" class="filter-dropdown" onchange="filterBySessions(this.value)">
+              <option value="all">All Sessions</option>
+              <option value="active">Active Only</option>
+            </select>
+          </div>
+          <div class="filter-row">
+            <select id="session-limit" class="filter-dropdown" onchange="changeSessionLimit(this.value)">
+              <option value="10">Show 10</option>
+              <option value="20">Show 20</option>
+              <option value="50">Show 50</option>
+              <option value="all">Show All</option>
+            </select>
+          </div>
+          <div id="sessions-list" class="sessions-list"></div>
+        </div>
+
+        <!-- Sprint tab -->
+        <div id="tab-content-sprint" class="tab-content">
+          <div class="section-header">
+            <span>Sprint Status</span>
+            <button onclick="loadSprintStatus()" style="background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; padding: 3px 8px; font-size: 10px; color: var(--text-secondary); cursor: pointer; font-family: var(--mono);">Refresh</button>
+          </div>
+          <div id="sprint-panel" class="sprint-panel">
+            <div class="live-empty">Select a project to view sprint</div>
+          </div>
+          <button id="sprint-import-btn" class="sprint-import-btn" onclick="showSprintImportModal()" style="display: none; margin: 0 12px 12px;">
+            Import Pulse Tasks to Sprint
           </button>
         </div>
-        <div class="filter-row">
-          <select id="project-filter" class="filter-dropdown" onchange="filterByProject(this.value)">
-            <option value="">All Projects</option>
-          </select>
-          <select id="session-filter" class="filter-dropdown" onchange="filterBySessions(this.value)">
-            <option value="all">All Sessions</option>
-            <option value="active">Active Only</option>
-          </select>
-        </div>
-        <div class="filter-row">
-          <select id="session-limit" class="filter-dropdown" onchange="changeSessionLimit(this.value)">
-            <option value="10">Show 10</option>
-            <option value="20">Show 20</option>
-            <option value="50">Show 50</option>
-            <option value="all">Show All</option>
-          </select>
-        </div>
-        <div id="sessions-list" class="sessions-list"></div>
       </div>
 
       <footer class="sidebar-footer">
@@ -1925,6 +2137,8 @@
       const sessionLabel = viewMode === 'all' && task.sessionName ? task.sessionName : null;
       const statusClass = task.status.replace('_', '-');
       const actualSessionId = task.sessionId || currentSessionId;
+      const priority = task.metadata?.priority;
+      const isPulse = task.metadata?.source === 'product-pulse';
 
       return `
         <div
@@ -1932,6 +2146,8 @@
           class="task-card ${statusClass} ${isBlocked ? 'blocked' : ''}">
           <div class="task-id">
             <span>#${taskId}</span>
+            ${priority ? `<span class="task-badge priority-${priority}">${priority}</span>` : ''}
+            ${isPulse ? '<span class="task-badge source-pulse">Pulse</span>' : ''}
             ${isBlocked ? '<span class="task-badge blocked">Blocked</span>' : ''}
           </div>
           <div class="task-title">${escapeHtml(task.subject)}</div>
@@ -2053,6 +2269,16 @@
           </div>
           ${isBlocked && task.status !== 'in_progress' ? '<div style="font-size: 10px; color: var(--warning); margin-top: 4px;">Blocked by dependencies</div>' : ''}
           <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">Status is controlled by Claude Code</div>
+        </div>
+
+        <div class="detail-section">
+          <div class="detail-label">Priority</div>
+          <div class="priority-picker">
+            <button class="priority-btn P1 ${task.metadata?.priority === 'P1' ? 'active-P1' : ''}" onclick="setTaskPriority('${task.id}', '${actualSessionId}', 'P1')">P1</button>
+            <button class="priority-btn P2 ${task.metadata?.priority === 'P2' ? 'active-P2' : ''}" onclick="setTaskPriority('${task.id}', '${actualSessionId}', 'P2')">P2</button>
+            <button class="priority-btn P3 ${task.metadata?.priority === 'P3' ? 'active-P3' : ''}" onclick="setTaskPriority('${task.id}', '${actualSessionId}', 'P3')">P3</button>
+          </div>
+          ${task.metadata?.source === 'product-pulse' ? `<div style="font-size: 10px; color: #a855f7; margin-top: 6px;">Source: Product Pulse (${task.metadata.date || 'unknown date'})</div>` : ''}
         </div>
 
         ${task.activeForm && task.status === 'in_progress' ? `
@@ -2412,6 +2638,192 @@
       document.getElementById('session-limit').value = sessionLimit;
     }
 
+    // Priority & Sprint functions
+    async function setTaskPriority(taskId, sessionId, priority) {
+      try {
+        const res = await fetch(`/api/tasks/${sessionId}/${taskId}/priority`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ priority })
+        });
+
+        if (res.ok) {
+          await refreshCurrentView();
+          showTaskDetail(taskId, sessionId);
+        } else {
+          const error = await res.json();
+          console.error('Failed to set priority:', error);
+        }
+      } catch (error) {
+        console.error('Failed to set priority:', error);
+      }
+    }
+
+    function switchSidebarTab(tab) {
+      document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+      document.getElementById(`tab-${tab}`).classList.add('active');
+      document.getElementById(`tab-content-${tab}`).classList.add('active');
+
+      if (tab === 'sprint') {
+        loadSprintStatus();
+      }
+    }
+
+    let sprintData = null;
+
+    async function loadSprintStatus() {
+      const panel = document.getElementById('sprint-panel');
+      const importBtn = document.getElementById('sprint-import-btn');
+
+      // Use filterProject or try to find project from current session
+      const project = filterProject || (sessions.length > 0 ? sessions[0].project : null);
+
+      if (!project) {
+        panel.innerHTML = '<div class="live-empty">Select a project to view sprint</div>';
+        importBtn.style.display = 'none';
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/sprint-status?project=${encodeURIComponent(project)}`);
+
+        if (!res.ok) {
+          const err = await res.json();
+          panel.innerHTML = `<div class="live-empty">${err.error || 'No sprint found'}</div>`;
+          importBtn.style.display = 'none';
+          return;
+        }
+
+        sprintData = await res.json();
+
+        const cs = sprintData.currentSprint;
+        const metrics = sprintData.metrics;
+        const percent = metrics.tasksTotal > 0 ? Math.round((metrics.tasksCompleted / metrics.tasksTotal) * 100) : 0;
+
+        // Current sprint card
+        let html = `
+          <div class="sprint-card">
+            <div class="sprint-card-header">
+              <span class="sprint-card-title">Sprint ${cs.number}: ${escapeHtml(cs.name || '')}</span>
+              <span class="sprint-card-status ${cs.status === 'completed' ? 'done' : 'in-progress'}">${cs.status}</span>
+            </div>
+            ${cs.goal ? `<div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 8px;">${escapeHtml(cs.goal)}</div>` : ''}
+            <div style="display: flex; gap: 16px; font-size: 11px; color: var(--text-secondary); margin-bottom: 8px;">
+              <span style="color: var(--success);">Done: ${metrics.tasksCompleted}</span>
+              <span>Total: ${metrics.tasksTotal}</span>
+              ${metrics.testCases > 0 ? `<span>Tests: ${metrics.testCases}</span>` : ''}
+            </div>
+            <div class="sprint-card-bar">
+              <div class="sprint-card-fill" style="width: ${percent}%"></div>
+            </div>
+          </div>
+        `;
+
+        // Carryover items
+        if (sprintData.carryover && sprintData.carryover.length > 0) {
+          html += `
+            <div class="sprint-card">
+              <div class="sprint-card-header">
+                <span class="sprint-card-title">Carryover</span>
+              </div>
+              <ul style="margin: 0; padding: 0 0 0 16px; font-size: 11px; color: var(--text-secondary); line-height: 1.8;">
+                ${sprintData.carryover.map(c => `<li><span style="color: ${c.priority === 'high' ? '#ef4444' : c.priority === 'medium' ? '#fb923c' : '#60a5fa'};">[${c.priority}]</span> ${escapeHtml(c.description)}</li>`).join('')}
+              </ul>
+            </div>
+          `;
+        }
+
+        // Previous sprints
+        if (sprintData.previousSprints.length > 0) {
+          for (const sprint of sprintData.previousSprints.reverse()) {
+            html += `
+              <div class="sprint-card" style="opacity: 0.6;">
+                <div class="sprint-card-header">
+                  <span class="sprint-card-title">Sprint ${sprint.number}: ${escapeHtml(sprint.name)}</span>
+                  <span class="sprint-card-status done">${sprint.status}</span>
+                </div>
+              </div>
+            `;
+          }
+        }
+
+        panel.innerHTML = html;
+
+        // Show import button if there are pulse tasks
+        const pulseTasks = allTasksCache.filter(t => t.metadata?.source === 'product-pulse' && t.status !== 'completed');
+        importBtn.style.display = pulseTasks.length > 0 ? 'block' : 'none';
+
+      } catch (error) {
+        console.error('Failed to load sprint status:', error);
+        panel.innerHTML = '<div class="live-empty">Failed to load sprint</div>';
+        importBtn.style.display = 'none';
+      }
+    }
+
+    function showSprintImportModal() {
+      const pulseTasks = allTasksCache.filter(t => t.metadata?.source === 'product-pulse' && t.status !== 'completed');
+
+      if (pulseTasks.length === 0) {
+        return;
+      }
+
+      // Find target sprint
+      const activeSprint = sprintData?.sprints?.find(s => s.status === 'in-progress');
+      const targetSprint = activeSprint ? activeSprint.number : (sprintData?.sprints?.length || 0) + 1;
+
+      const project = filterProject || (sessions.length > 0 ? sessions[0].project : null);
+
+      const tasksList = pulseTasks.map(t =>
+        `<li style="margin-bottom: 4px;"><strong>${t.metadata?.priority || '—'}</strong> ${escapeHtml(t.subject)}</li>`
+      ).join('');
+
+      const modal = document.getElementById('sprint-import-modal');
+      document.getElementById('sprint-import-tasks-list').innerHTML = tasksList;
+      document.getElementById('sprint-import-target').textContent = `Sprint ${targetSprint}`;
+      modal.dataset.project = project;
+      modal.dataset.sprint = targetSprint;
+      modal.dataset.tasks = JSON.stringify(pulseTasks.map(t => ({
+        subject: t.subject,
+        status: t.status,
+        storyKey: null,
+      })));
+      modal.classList.add('visible');
+    }
+
+    function closeSprintImportModal() {
+      document.getElementById('sprint-import-modal').classList.remove('visible');
+    }
+
+    async function confirmSprintImport() {
+      const modal = document.getElementById('sprint-import-modal');
+      const project = modal.dataset.project;
+      const sprintNumber = parseInt(modal.dataset.sprint);
+      const tasks = JSON.parse(modal.dataset.tasks);
+
+      closeSprintImportModal();
+
+      try {
+        const res = await fetch('/api/sprint-import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ project, sprintNumber, tasks })
+        });
+
+        if (res.ok) {
+          const result = await res.json();
+          console.log('Sprint import successful:', result);
+          loadSprintStatus();
+        } else {
+          const error = await res.json();
+          console.error('Sprint import failed:', error);
+        }
+      } catch (error) {
+        console.error('Sprint import failed:', error);
+      }
+    }
+
     // Init
     loadTheme();
     loadPreferences();
@@ -2531,6 +2943,29 @@
       </div>
       <div class="modal-footer">
         <button class="btn btn-primary" onclick="closeDeleteResultModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sprint Import Modal -->
+  <div id="sprint-import-modal" class="modal-overlay" onclick="closeSprintImportModal()">
+    <div class="modal" onclick="event.stopPropagation()" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Import to Sprint</h3>
+        <button class="modal-close" onclick="closeSprintImportModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p style="margin: 0 0 12px 0; color: var(--text-primary);">Import these Product Pulse tasks to <strong id="sprint-import-target">Sprint</strong>?</p>
+        <ul id="sprint-import-tasks-list" style="margin: 0 0 0 20px; padding: 0; color: var(--text-secondary); font-size: 12px; line-height: 1.8;"></ul>
+        <p style="margin: 12px 0 0 0; font-size: 11px; color: var(--text-muted);">Tasks will be added to sprint-status.yaml as backlog stories.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeSprintImportModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmSprintImport()">Import</button>
       </div>
     </div>
   </div>
