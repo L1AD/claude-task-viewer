@@ -2702,17 +2702,19 @@
         const metrics = sprintData.metrics;
         const percent = metrics.tasksTotal > 0 ? Math.round((metrics.tasksCompleted / metrics.tasksTotal) * 100) : 0;
 
-        // Current sprint card
+        // Summary card
         let html = `
           <div class="sprint-card">
             <div class="sprint-card-header">
-              <span class="sprint-card-title">Sprint ${cs.number}: ${escapeHtml(cs.name || '')}</span>
-              <span class="sprint-card-status ${cs.status === 'completed' ? 'done' : 'in-progress'}">${cs.status}</span>
+              <span class="sprint-card-title">${escapeHtml(cs.name || 'Project')}</span>
+              <span class="sprint-card-status ${cs.status === 'in-progress' ? 'in-progress' : 'done'}">${cs.status}</span>
             </div>
-            ${cs.goal ? `<div style="font-size: 11px; color: var(--text-secondary); margin-bottom: 8px;">${escapeHtml(cs.goal)}</div>` : ''}
-            <div style="display: flex; gap: 16px; font-size: 11px; color: var(--text-secondary); margin-bottom: 8px;">
+            <div style="display: flex; gap: 12px; font-size: 11px; color: var(--text-secondary); margin-bottom: 8px; flex-wrap: wrap;">
               <span style="color: var(--success);">Done: ${metrics.tasksCompleted}</span>
               <span>Total: ${metrics.tasksTotal}</span>
+              ${metrics.totalEpics ? `<span>Epics: ${metrics.totalEpics}</span>` : ''}
+              ${metrics.totalStories ? `<span>Stories: ${metrics.totalStories}</span>` : ''}
+              ${metrics.totalBacklog ? `<span style="color: var(--warning);">Backlog: ${metrics.totalBacklog}</span>` : ''}
               ${metrics.testCases > 0 ? `<span>Tests: ${metrics.testCases}</span>` : ''}
             </div>
             <div class="sprint-card-bar">
@@ -2721,7 +2723,40 @@
           </div>
         `;
 
-        // Carryover items
+        // BMAD format: show sprint list
+        if (sprintData.sprints && sprintData.sprints.length > 0) {
+          const activeSprints = sprintData.sprints.filter(s => s.status === 'in-progress');
+          const doneSprints = sprintData.sprints.filter(s => s.status === 'done');
+
+          for (const sprint of activeSprints) {
+            html += `
+              <div class="sprint-card">
+                <div class="sprint-card-header">
+                  <span class="sprint-card-title">Sprint ${sprint.number}</span>
+                  <span class="sprint-card-status in-progress">In Progress</span>
+                </div>
+                ${sprint.start && sprint.end ? `<div class="sprint-card-dates">${sprint.start} &rarr; ${sprint.end}</div>` : ''}
+                <div style="font-size: 11px; color: var(--text-muted);">${sprint.tasks} task(s)</div>
+              </div>
+            `;
+          }
+
+          // Show last 3 done sprints
+          for (const sprint of doneSprints.slice(-3).reverse()) {
+            html += `
+              <div class="sprint-card" style="opacity: 0.6;">
+                <div class="sprint-card-header">
+                  <span class="sprint-card-title">Sprint ${sprint.number}</span>
+                  <span class="sprint-card-status done">Done</span>
+                </div>
+                ${sprint.start && sprint.end ? `<div class="sprint-card-dates">${sprint.start} &rarr; ${sprint.end}</div>` : ''}
+                <div style="font-size: 11px; color: var(--text-muted);">${sprint.tasks} task(s)</div>
+              </div>
+            `;
+          }
+        }
+
+        // Carryover items (simple format)
         if (sprintData.carryover && sprintData.carryover.length > 0) {
           html += `
             <div class="sprint-card">
@@ -2735,13 +2770,13 @@
           `;
         }
 
-        // Previous sprints
-        if (sprintData.previousSprints.length > 0) {
+        // Previous sprints (simple format only — BMAD sprints shown above)
+        if (!sprintData.sprints && sprintData.previousSprints.length > 0) {
           for (const sprint of sprintData.previousSprints.reverse()) {
             html += `
               <div class="sprint-card" style="opacity: 0.6;">
                 <div class="sprint-card-header">
-                  <span class="sprint-card-title">Sprint ${sprint.number}: ${escapeHtml(sprint.name)}</span>
+                  <span class="sprint-card-title">Sprint ${sprint.number}: ${escapeHtml(sprint.name || '')}</span>
                   <span class="sprint-card-status done">${sprint.status}</span>
                 </div>
               </div>
