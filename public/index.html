@@ -2799,6 +2799,8 @@
       }
     }
 
+    let importCandidates = []; // store full task objects for import
+
     function showSprintImportModal() {
       const pulseTasks = allTasksCache.filter(t => t.metadata?.source === 'product-pulse' && t.status !== 'completed');
 
@@ -2806,27 +2808,49 @@
         return;
       }
 
+      importCandidates = pulseTasks;
+
       // Find target sprint
       const activeSprint = sprintData?.sprints?.find(s => s.status === 'in-progress');
       const targetSprint = activeSprint ? activeSprint.number : (sprintData?.sprints?.length || 0) + 1;
 
       const project = filterProject || (sessions.length > 0 ? sessions[0].project : null);
 
-      const tasksList = pulseTasks.map(t =>
-        `<li style="margin-bottom: 4px;"><strong>${t.metadata?.priority || '—'}</strong> ${escapeHtml(t.subject)}</li>`
-      ).join('');
+      const tasksList = pulseTasks.map((t, i) => {
+        const priority = t.metadata?.priority || '—';
+        const prioClass = t.metadata?.priority ? `priority-${t.metadata.priority}` : '';
+        return `
+          <label style="display: flex; align-items: flex-start; gap: 10px; padding: 8px 10px; margin-bottom: 4px; background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; transition: all 0.15s ease;" onmouseover="this.style.borderColor='var(--text-muted)'" onmouseout="this.style.borderColor='var(--border)'">
+            <input type="checkbox" checked data-import-idx="${i}" style="margin-top: 3px; accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer;">
+            <div style="flex: 1; min-width: 0;">
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span class="task-badge ${prioClass}" style="font-size: 10px;">${priority}</span>
+                <span style="font-size: 12px; color: var(--text-primary);">${escapeHtml(t.subject)}</span>
+              </div>
+              ${t.description ? `<div style="font-size: 11px; color: var(--text-tertiary); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(t.description.split('\\n')[0].slice(0, 80))}</div>` : ''}
+            </div>
+          </label>
+        `;
+      }).join('');
 
       const modal = document.getElementById('sprint-import-modal');
       document.getElementById('sprint-import-tasks-list').innerHTML = tasksList;
       document.getElementById('sprint-import-target').textContent = `Sprint ${targetSprint}`;
       modal.dataset.project = project;
       modal.dataset.sprint = targetSprint;
-      modal.dataset.tasks = JSON.stringify(pulseTasks.map(t => ({
-        subject: t.subject,
-        status: t.status,
-        storyKey: null,
-      })));
       modal.classList.add('visible');
+
+      updateImportCount();
+    }
+
+    function updateImportCount() {
+      const checked = document.querySelectorAll('[data-import-idx]:checked').length;
+      const btn = document.getElementById('sprint-import-confirm-btn');
+      if (btn) {
+        btn.textContent = checked > 0 ? `Import ${checked} Task${checked > 1 ? 's' : ''}` : 'Select tasks to import';
+        btn.disabled = checked === 0;
+        btn.style.opacity = checked === 0 ? '0.5' : '1';
+      }
     }
 
     function closeSprintImportModal() {
@@ -2837,7 +2861,21 @@
       const modal = document.getElementById('sprint-import-modal');
       const project = modal.dataset.project;
       const sprintNumber = parseInt(modal.dataset.sprint);
-      const tasks = JSON.parse(modal.dataset.tasks);
+
+      // Only import checked tasks
+      const checkedIdxs = [];
+      document.querySelectorAll('[data-import-idx]:checked').forEach(cb => {
+        checkedIdxs.push(parseInt(cb.dataset.importIdx));
+      });
+
+      if (checkedIdxs.length === 0) return;
+
+      const tasks = checkedIdxs.map(i => ({
+        subject: importCandidates[i].subject,
+        status: importCandidates[i].status,
+        description: importCandidates[i].description || '',
+        storyKey: null,
+      }));
 
       closeSprintImportModal();
 
@@ -2996,13 +3034,17 @@
         </button>
       </div>
       <div class="modal-body">
-        <p style="margin: 0 0 12px 0; color: var(--text-primary);">Import these Product Pulse tasks to <strong id="sprint-import-target">Sprint</strong>?</p>
-        <ul id="sprint-import-tasks-list" style="margin: 0 0 0 20px; padding: 0; color: var(--text-secondary); font-size: 12px; line-height: 1.8;"></ul>
-        <p style="margin: 12px 0 0 0; font-size: 11px; color: var(--text-muted);">Tasks will be added to sprint-status.yaml as backlog stories.</p>
+        <p style="margin: 0 0 8px 0; color: var(--text-primary);">Select tasks to import to <strong id="sprint-import-target">Sprint</strong>:</p>
+        <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+          <button onclick="document.querySelectorAll('[data-import-idx]').forEach(c=>{c.checked=true}); updateImportCount();" style="background: none; border: none; color: var(--accent); font-family: var(--mono); font-size: 11px; cursor: pointer; padding: 0;">Select all</button>
+          <button onclick="document.querySelectorAll('[data-import-idx]').forEach(c=>{c.checked=false}); updateImportCount();" style="background: none; border: none; color: var(--text-tertiary); font-family: var(--mono); font-size: 11px; cursor: pointer; padding: 0;">Clear all</button>
+        </div>
+        <div id="sprint-import-tasks-list" style="max-height: 300px; overflow-y: auto;" onchange="updateImportCount()"></div>
+        <p style="margin: 12px 0 0 0; font-size: 11px; color: var(--text-muted);">Selected tasks will be added to sprint-status.yaml as backlog stories.</p>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeSprintImportModal()">Cancel</button>
-        <button class="btn btn-primary" onclick="confirmSprintImport()">Import</button>
+        <button id="sprint-import-confirm-btn" class="btn btn-primary" onclick="confirmSprintImport()">Import 5 Tasks</button>
       </div>
     </div>
   </div>
