@@ -1,6 +1,6 @@
 {
   "name": "claude-task-viewer",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "description": "A web-based Kanban board for viewing Claude Code tasks",
   "main": "server.js",
   "bin": {
