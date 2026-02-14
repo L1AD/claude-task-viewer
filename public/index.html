@@ -1919,8 +1919,18 @@
       renderSessions();
     }
 
+    function isTaskActuallyBlocked(task) {
+      if (!task.blockedBy || task.blockedBy.length === 0) return false;
+      return task.blockedBy.some(id => {
+        const blockingTask = currentTasks.find(t =>
+          t.id === id && (viewMode !== 'all' || t.sessionId === task.sessionId)
+        );
+        return !blockingTask || blockingTask.status !== 'completed';
+      });
+    }
+
     function renderTaskCard(task) {
-      const isBlocked = task.blockedBy && task.blockedBy.length > 0;
+      const isBlocked = isTaskActuallyBlocked(task);
       const taskId = viewMode === 'all' ? `${task.sessionId?.slice(0,4)}-${task.id}` : task.id;
       const sessionLabel = viewMode === 'all' && task.sessionName ? task.sessionName : null;
       const statusClass = task.status.replace('_', '-');
@@ -2026,7 +2036,7 @@
         pending: '<span class="detail-status pending"><span class="dot"></span>Pending</span>'
       };
 
-      const isBlocked = task.blockedBy && task.blockedBy.length > 0;
+      const isBlocked = isTaskActuallyBlocked(task);
       const actualSessionId = task.sessionId || sessionId || currentSessionId;
 
       detailContent.innerHTML = `
