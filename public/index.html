@@ -969,6 +969,13 @@
       filter: brightness(1.1);
     }
 
+    /* Notification bell */
+    .icon-btn.notifications-active {
+      color: var(--accent);
+      border-color: var(--accent);
+      background: var(--accent-dim);
+    }
+
     /* Archived sessions */
     .archived-header {
       display: flex;
@@ -1393,6 +1400,11 @@
               </div>
               <span id="progress-percent" class="progress-text">0%</span>
             </div>
+            <button id="notifications-toggle" class="icon-btn" onclick="toggleNotifications()" title="Toggle notifications">
+              <svg id="bell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/>
+              </svg>
+            </button>
             <button id="theme-toggle" class="icon-btn" onclick="toggleTheme()" title="Toggle theme">
               <svg id="theme-icon-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
@@ -1469,6 +1481,8 @@
     let searchQuery = ''; // Search query for fuzzy search
     let allTasksCache = []; // Cache all tasks for search
     let bulkDeleteSessionId = null; // Track session for bulk delete
+    let notificationsEnabled = localStorage.getItem('notificationsEnabled') === 'true';
+    let previousTaskStatuses = new Map(); // taskKey → status for detecting completions
     let archivedExpanded = localStorage.getItem('archivedExpanded') === 'true';
     const ARCHIVE_DAYS = 7;
 
@@ -1493,6 +1507,13 @@
     async function fetchSessions() {
       console.log('[fetchSessions] Starting...');
       try {
+        // Snapshot previous task statuses for notification detection
+        const oldStatuses = new Map();
+        for (const task of allTasksCache) {
+          const key = `${task.sessionId}:${task.id}`;
+          oldStatuses.set(key, task.status);
+        }
+
         const res = await fetch(`/api/sessions?limit=${sessionLimit}`);
         sessions = await res.json();
         console.log('[fetchSessions] Sessions loaded:', sessions.length);
@@ -1501,6 +1522,20 @@
         const tasksRes = await fetch('/api/tasks/all');
         allTasksCache = await tasksRes.json();
         console.log('[fetchSessions] Tasks cache loaded');
+
+        // Detect task completions and fire notifications
+        if (notificationsEnabled && oldStatuses.size > 0) {
+          for (const task of allTasksCache) {
+            const key = `${task.sessionId}:${task.id}`;
+            const oldStatus = oldStatuses.get(key);
+            if (oldStatus === 'in_progress' && task.status === 'completed') {
+              fireTaskNotification(task);
+            }
+          }
+        }
+
+        // Update previous statuses
+        previousTaskStatuses = oldStatuses;
 
         renderSessions();
         console.log('[fetchSessions] Render complete');
@@ -2497,6 +2532,90 @@
       document.getElementById('session-limit').value = sessionLimit;
     }
 
+    // --- Notification functions ---
+
+    function toggleNotifications() {
+      if (!notificationsEnabled && Notification.permission !== 'granted') {
+        Notification.requestPermission().then(perm => {
+          if (perm === 'granted') {
+            notificationsEnabled = true;
+            localStorage.setItem('notificationsEnabled', 'true');
+            updateNotificationButton();
+          }
+        });
+      } else {
+        notificationsEnabled = !notificationsEnabled;
+        localStorage.setItem('notificationsEnabled', String(notificationsEnabled));
+        updateNotificationButton();
+      }
+    }
+
+    function updateNotificationButton() {
+      const btn = document.getElementById('notifications-toggle');
+      if (notificationsEnabled) {
+        btn.classList.add('notifications-active');
+        btn.title = 'Notifications on (click to mute)';
+      } else {
+        btn.classList.remove('notifications-active');
+        btn.title = 'Notifications off (click to enable)';
+      }
+    }
+
+    function fireTaskNotification(task) {
+      // Desktop notification
+      if (Notification.permission === 'granted') {
+        const n = new Notification('Task completed', {
+          body: task.subject,
+          icon: undefined,
+          tag: `task-${task.sessionId}-${task.id}`
+        });
+        n.onclick = () => {
+          window.focus();
+          openLiveTask(task.sessionId, task.id);
+          n.close();
+        };
+      }
+
+      // Audio chime (C5 → E5, two-tone)
+      playChime();
+    }
+
+    function playChime() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const now = ctx.currentTime;
+
+        // First tone: C5 (523Hz)
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.frequency.value = 523;
+        osc1.type = 'sine';
+        gain1.gain.setValueAtTime(0.15, now);
+        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        osc1.start(now);
+        osc1.stop(now + 0.15);
+
+        // Second tone: E5 (659Hz)
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.frequency.value = 659;
+        osc2.type = 'sine';
+        gain2.gain.setValueAtTime(0.15, now + 0.1);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.start(now + 0.1);
+        osc2.stop(now + 0.25);
+
+        // Clean up
+        setTimeout(() => ctx.close(), 500);
+      } catch (e) {
+        // Audio not available
+      }
+    }
+
     // --- Archive functions ---
 
     function isSessionStale(session) {
@@ -2518,6 +2637,7 @@
     // Init
     loadTheme();
     loadPreferences();
+    updateNotificationButton();
     setupEventSource();
 
     // Fetch sessions and show newest one by default
