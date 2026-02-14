@@ -969,6 +969,51 @@
       filter: brightness(1.1);
     }
 
+    /* Archived sessions */
+    .archived-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      margin-top: 8px;
+      cursor: pointer;
+      font-size: 11px;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border);
+      transition: color 0.15s;
+      user-select: none;
+    }
+
+    .archived-header:hover {
+      color: var(--text-secondary);
+    }
+
+    .archived-header svg {
+      width: 12px;
+      height: 12px;
+      transition: transform 0.2s ease;
+    }
+
+    .archived-header.expanded svg {
+      transform: rotate(90deg);
+    }
+
+    .archived-sessions {
+      display: none;
+    }
+
+    .archived-sessions.visible {
+      display: block;
+    }
+
+    .session-item.archived {
+      opacity: 0.5;
+    }
+
+    .session-item.archived:hover {
+      opacity: 0.8;
+    }
+
     /* Light mode */
     body.light {
       --bg-deep: #fafafa;
@@ -1424,6 +1469,8 @@
     let searchQuery = ''; // Search query for fuzzy search
     let allTasksCache = []; // Cache all tasks for search
     let bulkDeleteSessionId = null; // Track session for bulk delete
+    let archivedExpanded = localStorage.getItem('archivedExpanded') === 'true';
+    const ARCHIVE_DAYS = 7;
 
     // DOM
     const sessionsList = document.getElementById('sessions-list');
@@ -1834,45 +1881,73 @@
         return;
       }
 
-      sessionsList.innerHTML = filteredSessions.map(session => {
-        const total = session.taskCount;
-        const percent = total > 0 ? Math.round((session.completed / total) * 100) : 0;
-        const isActive = session.id === currentSessionId && viewMode === 'session';
-        const hasInProgress = session.inProgress > 0;
-        const sessionName = session.name || session.id.slice(0, 8) + '...';
-        const projectName = session.project ? session.project.split('/').pop() : null;
-        const primaryName = projectName || sessionName;
-        const secondaryName = projectName ? sessionName : null;
+      // Split into active and archived
+      const activeSessions = [];
+      const archivedSessions = [];
+      for (const session of filteredSessions) {
+        if (sessionFilter === 'active' || searchQuery) {
+          activeSessions.push(session);
+        } else if (isSessionStale(session)) {
+          archivedSessions.push(session);
+        } else {
+          activeSessions.push(session);
+        }
+      }
 
-        // Format git branch for display
-        const gitBranch = session.gitBranch ? escapeHtml(session.gitBranch) : null;
+      let html = activeSessions.map(session => renderSessionItem(session, false)).join('');
 
-        // Format timestamps for display
-        const createdDisplay = session.createdAt ? formatDate(session.createdAt) : '';
-        const modifiedDisplay = formatDate(session.modifiedAt);
-        const timeDisplay = session.createdAt && createdDisplay !== modifiedDisplay
-          ? `Created ${createdDisplay} · Modified ${modifiedDisplay}`
-          : modifiedDisplay;
-
-        // Build tooltip
-        const tooltip = [timeDisplay, gitBranch ? `Branch: ${gitBranch}` : ''].filter(Boolean).join(' | ');
-
-        return `
-          <button onclick="fetchTasks('${session.id}')" class="session-item ${isActive ? 'active' : ''}" title="${tooltip}">
-            <div class="session-name">
-              <span>${escapeHtml(primaryName)}</span>
-              ${hasInProgress ? '<span class="pulse"></span>' : ''}
-            </div>
-            ${secondaryName ? `<div class="session-secondary">${escapeHtml(secondaryName)}</div>` : ''}
-            ${gitBranch ? `<div class="session-branch">${gitBranch}</div>` : ''}
-            <div class="session-progress">
-              <div class="progress-bar"><div class="progress-fill" style="width: ${percent}%"></div></div>
-              <span class="progress-text">${session.completed}/${total}</span>
-            </div>
-            <div class="session-time">${formatDate(session.modifiedAt)}</div>
-          </button>
+      if (archivedSessions.length > 0) {
+        html += `
+          <div class="archived-header ${archivedExpanded ? 'expanded' : ''}" onclick="toggleArchived()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+            <span>Archived (${archivedSessions.length})</span>
+          </div>
+          <div class="archived-sessions ${archivedExpanded ? 'visible' : ''}">
+            ${archivedSessions.map(session => renderSessionItem(session, true)).join('')}
+          </div>
         `;
-      }).join('');
+      }
+
+      sessionsList.innerHTML = html;
+    }
+
+    function renderSessionItem(session, isArchived) {
+      const total = session.taskCount;
+      const percent = total > 0 ? Math.round((session.completed / total) * 100) : 0;
+      const isActive = session.id === currentSessionId && viewMode === 'session';
+      const hasInProgress = session.inProgress > 0;
+      const sessionName = session.name || session.id.slice(0, 8) + '...';
+      const projectName = session.project ? session.project.split('/').pop() : null;
+      const primaryName = projectName || sessionName;
+      const secondaryName = projectName ? sessionName : null;
+
+      const gitBranch = session.gitBranch ? escapeHtml(session.gitBranch) : null;
+
+      const createdDisplay = session.createdAt ? formatDate(session.createdAt) : '';
+      const modifiedDisplay = formatDate(session.modifiedAt);
+      const timeDisplay = session.createdAt && createdDisplay !== modifiedDisplay
+        ? `Created ${createdDisplay} · Modified ${modifiedDisplay}`
+        : modifiedDisplay;
+
+      const tooltip = [timeDisplay, gitBranch ? `Branch: ${gitBranch}` : ''].filter(Boolean).join(' | ');
+
+      return `
+        <button onclick="fetchTasks('${session.id}')" class="session-item ${isActive ? 'active' : ''} ${isArchived ? 'archived' : ''}" title="${tooltip}">
+          <div class="session-name">
+            <span>${escapeHtml(primaryName)}</span>
+            ${hasInProgress ? '<span class="pulse"></span>' : ''}
+          </div>
+          ${secondaryName ? `<div class="session-secondary">${escapeHtml(secondaryName)}</div>` : ''}
+          ${gitBranch ? `<div class="session-branch">${gitBranch}</div>` : ''}
+          <div class="session-progress">
+            <div class="progress-bar"><div class="progress-fill" style="width: ${percent}%"></div></div>
+            <span class="progress-text">${session.completed}/${total}</span>
+          </div>
+          <div class="session-time">${formatDate(session.modifiedAt)}</div>
+        </button>
+      `;
     }
 
     function renderSession() {
@@ -2420,6 +2495,24 @@
     function loadPreferences() {
       document.getElementById('session-filter').value = sessionFilter;
       document.getElementById('session-limit').value = sessionLimit;
+    }
+
+    // --- Archive functions ---
+
+    function isSessionStale(session) {
+      if (session.inProgress > 0) return false;
+      const modifiedAt = new Date(session.modifiedAt);
+      const daysAgo = (Date.now() - modifiedAt.getTime()) / (1000 * 60 * 60 * 24);
+      return daysAgo > ARCHIVE_DAYS;
+    }
+
+    function toggleArchived() {
+      archivedExpanded = !archivedExpanded;
+      localStorage.setItem('archivedExpanded', String(archivedExpanded));
+      const header = document.querySelector('.archived-header');
+      const container = document.querySelector('.archived-sessions');
+      if (header) header.classList.toggle('expanded', archivedExpanded);
+      if (container) container.classList.toggle('visible', archivedExpanded);
     }
 
     // Init
