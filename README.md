@@ -13,6 +13,9 @@ When Claude Code breaks down complex work into tasks, you get visibility into it
 - **See the big picture** — All your sessions and tasks in one place
 - **Know what's happening now** — Live Updates show exactly what Claude is doing across all sessions
 - **Understand task dependencies** — See which tasks are blocked and what's holding them up
+- **Get notified** — Desktop notifications and sound chime when tasks complete
+- **Visualise timing** — Timeline view shows task durations as a Gantt-style chart
+- **Stay organised** — Stale sessions auto-archive to keep the sidebar clean
 - **Clean up completed work** — Delete tasks when no longer needed (with dependency checking)
 
 ## Key Features
@@ -24,12 +27,30 @@ Claude Code controls task state — the viewer shows you what's happening:
 - **Task dependencies** — Visualise blockedBy/blocks relationships to understand the critical path
 - **Live activity feed** — Real-time stream of all in-progress tasks across every session
 
+### Desktop & Sound Notifications
+- **Bell icon** in the header toggles notifications on/off (persisted across sessions)
+- **Desktop notifications** fire when a task moves from In Progress → Completed — click to jump to it
+- **Audio chime** plays a short two-tone sound (C5→E5) alongside the desktop notification
+- Requires browser notification permission on first enable
+
+### Session Timeline
+- **Kanban/Timeline toggle** in the header switches between the board and a Gantt-style chart
+- Tasks displayed as horizontal bars from creation to last update, colour-coded by status
+- **Time axis auto-scales** — seconds, minutes, hours, or days depending on the session span
+- Hover for exact timestamps and duration; click to open the detail panel
+- View preference persists in localStorage
+
+### Auto-archive Stale Sessions
+- Sessions with no in-progress tasks and unmodified for over 7 days collapse into an **Archived** section
+- Collapsed by default — click to expand. Expand/collapse state persists across reloads
+- Archived sessions still appear when searching or using "Active Only" filter
+
 ### Cleanup Operations
 - **Delete tasks** — Remove tasks with the delete button or press `D` (includes safety checks for dependencies)
 - **Bulk delete** — Delete all tasks in a session at once
 
 ### Session Management
-View and organize your Claude Code sessions:
+View and organise your Claude Code sessions:
 - **Session discovery** — Automatically finds all sessions in `~/.claude/tasks/` and `~/.claude/projects/`
 - **View project paths** — See the full filesystem path for each project
 - **Fuzzy search** — Search across session names, task descriptions, and project paths with instant filtering
@@ -129,13 +150,13 @@ npx claude-task-viewer --dir=~/.claude-work
 - **Keyboard shortcuts** — ?, D, Esc for quick actions
 - **Session discovery** — Automatic detection of all Claude Code sessions
 - **Search** — Search across sessions and tasks
+- **Desktop notifications** — Notifications and audio chime when tasks complete
+- **Task timeline** — Gantt-style view showing task creation and completion times
+- **Session archiving** — Stale sessions auto-collapse into an archived section
 
 ### 🚧 Planned
 - **Enhanced search & filter** — Filter by status, dependencies, date ranges
-- **Session grouping** — Group sessions by project or time period
-- **Task timeline** — See when tasks were created and completed
 - **Export** — Export session data for analysis or reporting
-- **Desktop notifications** — Optional notifications when tasks complete
 
 [Open an issue](https://github.com/L1AD/claude-task-viewer/issues) with ideas or feedback.
 
