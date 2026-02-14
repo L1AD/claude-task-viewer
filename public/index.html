@@ -969,6 +969,164 @@
       filter: brightness(1.1);
     }
 
+    /* View toggle */
+    .view-toggle {
+      display: flex;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .view-toggle-btn {
+      padding: 6px 10px;
+      background: transparent;
+      border: none;
+      color: var(--text-tertiary);
+      cursor: pointer;
+      font-family: var(--mono);
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+    }
+
+    .view-toggle-btn:not(:last-child) {
+      border-right: 1px solid var(--border);
+    }
+
+    .view-toggle-btn:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    .view-toggle-btn.active {
+      background: var(--accent-dim);
+      color: var(--accent);
+    }
+
+    .view-toggle-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* Timeline */
+    .timeline {
+      flex: 1;
+      display: none;
+      flex-direction: column;
+      padding: 24px;
+      overflow: auto;
+    }
+
+    .timeline.visible {
+      display: flex;
+    }
+
+    .timeline-axis {
+      display: flex;
+      align-items: center;
+      padding: 0 0 8px 160px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 8px;
+      position: relative;
+      min-height: 28px;
+    }
+
+    .timeline-axis-label {
+      position: absolute;
+      font-size: 10px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      transform: translateX(-50%);
+    }
+
+    .timeline-row {
+      display: flex;
+      align-items: center;
+      min-height: 36px;
+      gap: 12px;
+      cursor: pointer;
+      padding: 2px 0;
+      border-radius: 4px;
+      transition: background 0.15s;
+    }
+
+    .timeline-row:hover {
+      background: var(--bg-hover);
+    }
+
+    .timeline-row-label {
+      width: 148px;
+      flex-shrink: 0;
+      font-size: 12px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: right;
+      padding-right: 0;
+    }
+
+    .timeline-row-track {
+      flex: 1;
+      position: relative;
+      height: 24px;
+    }
+
+    .timeline-bar {
+      position: absolute;
+      height: 20px;
+      top: 2px;
+      border-radius: 4px;
+      min-width: 4px;
+      transition: opacity 0.15s;
+    }
+
+    .timeline-bar.pending {
+      background: var(--text-muted);
+      opacity: 0.5;
+    }
+
+    .timeline-bar.in_progress {
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent-dim);
+    }
+
+    .timeline-bar.completed {
+      background: var(--success);
+      opacity: 0.8;
+    }
+
+    .timeline-tooltip {
+      position: fixed;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 11px;
+      color: var(--text-primary);
+      pointer-events: none;
+      z-index: 10001;
+      max-width: 300px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      display: none;
+    }
+
+    .timeline-tooltip.visible {
+      display: block;
+    }
+
+    .timeline-tooltip-title {
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+
+    .timeline-tooltip-time {
+      color: var(--text-tertiary);
+      font-size: 10px;
+    }
+
     /* Notification bell */
     .icon-btn.notifications-active {
       color: var(--accent);
@@ -1400,6 +1558,18 @@
               </div>
               <span id="progress-percent" class="progress-text">0%</span>
             </div>
+            <div class="view-toggle">
+              <button id="view-kanban-btn" class="view-toggle-btn active" onclick="switchView('kanban')" title="Kanban view">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="15" rx="1"/>
+                </svg>
+              </button>
+              <button id="view-timeline-btn" class="view-toggle-btn" onclick="switchView('timeline')" title="Timeline view">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 6h18M3 12h12M3 18h16"/>
+                </svg>
+              </button>
+            </div>
             <button id="notifications-toggle" class="icon-btn" onclick="toggleNotifications()" title="Toggle notifications">
               <svg id="bell-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/>
@@ -1452,8 +1622,20 @@
             <div id="completed-tasks" class="column-tasks"></div>
           </div>
         </div>
+
+        <!-- Timeline view -->
+        <div id="timeline-view" class="timeline">
+          <div id="timeline-axis" class="timeline-axis"></div>
+          <div id="timeline-rows"></div>
+        </div>
       </div>
     </main>
+
+    <!-- Timeline tooltip -->
+    <div id="timeline-tooltip" class="timeline-tooltip">
+      <div id="tooltip-title" class="timeline-tooltip-title"></div>
+      <div id="tooltip-time" class="timeline-tooltip-time"></div>
+    </div>
 
     <!-- Detail panel -->
     <aside id="detail-panel" class="detail-panel">
@@ -1483,6 +1665,7 @@
     let bulkDeleteSessionId = null; // Track session for bulk delete
     let notificationsEnabled = localStorage.getItem('notificationsEnabled') === 'true';
     let previousTaskStatuses = new Map(); // taskKey → status for detecting completions
+    let currentView = localStorage.getItem('currentView') || 'kanban'; // 'kanban' or 'timeline'
     let archivedExpanded = localStorage.getItem('archivedExpanded') === 'true';
     const ARCHIVE_DAYS = 7;
 
@@ -2083,6 +2266,11 @@
       completedTasks.innerHTML = completed.length > 0
         ? completed.map(renderTaskCard).join('')
         : '<div class="column-empty">No completed tasks</div>';
+
+      // Also update timeline if visible
+      if (currentView === 'timeline') {
+        renderTimeline();
+      }
     }
 
     function getAvailableTasksOptions(currentTaskId = null) {
@@ -2532,6 +2720,133 @@
       document.getElementById('session-limit').value = sessionLimit;
     }
 
+    // --- View toggle functions ---
+
+    function switchView(view) {
+      currentView = view;
+      localStorage.setItem('currentView', view);
+
+      const kanbanEl = document.querySelector('.kanban');
+      const timelineEl = document.getElementById('timeline-view');
+      const kanbanBtn = document.getElementById('view-kanban-btn');
+      const timelineBtn = document.getElementById('view-timeline-btn');
+
+      if (view === 'kanban') {
+        kanbanEl.style.display = 'flex';
+        timelineEl.classList.remove('visible');
+        kanbanBtn.classList.add('active');
+        timelineBtn.classList.remove('active');
+      } else {
+        kanbanEl.style.display = 'none';
+        timelineEl.classList.add('visible');
+        kanbanBtn.classList.remove('active');
+        timelineBtn.classList.add('active');
+        renderTimeline();
+      }
+    }
+
+    function renderTimeline() {
+      const tasks = [...currentTasks].filter(t => t.createdAt);
+      if (tasks.length === 0) {
+        document.getElementById('timeline-rows').innerHTML =
+          '<div style="padding: 32px; text-align: center; color: var(--text-muted);">No tasks with timestamp data</div>';
+        document.getElementById('timeline-axis').innerHTML = '';
+        return;
+      }
+
+      // Sort by creation time
+      tasks.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+      const minTime = new Date(tasks[0].createdAt).getTime();
+      const maxTime = Math.max(
+        ...tasks.map(t => new Date(t.updatedAt || t.createdAt).getTime()),
+        Date.now()
+      );
+      const span = maxTime - minTime || 1;
+
+      // Generate axis labels using percentage-based positioning
+      const axisEl = document.getElementById('timeline-axis');
+      const labelCount = 6;
+      axisEl.innerHTML = '';
+      for (let i = 0; i <= labelCount; i++) {
+        const t = minTime + (span * i / labelCount);
+        const pct = (i / labelCount) * 100;
+        const label = document.createElement('span');
+        label.className = 'timeline-axis-label';
+        label.style.left = `calc(160px + (100% - 172px) * ${pct} / 100)`;
+        label.textContent = formatTimelineLabel(t, span);
+        axisEl.appendChild(label);
+      }
+
+      // Render rows
+      const rowsEl = document.getElementById('timeline-rows');
+      rowsEl.innerHTML = tasks.map(task => {
+        const start = new Date(task.createdAt).getTime();
+        const end = new Date(task.updatedAt || task.createdAt).getTime();
+        const leftPct = ((start - minTime) / span) * 100;
+        const widthPct = Math.max(((end - start) / span) * 100, 0.5);
+        const statusClass = task.status === 'in_progress' ? 'in_progress' : task.status;
+        const actualSessionId = task.sessionId || currentSessionId;
+        const safeSubject = escapeHtml(task.subject).replace(/'/g, '&#39;');
+
+        return `
+          <div class="timeline-row"
+               onclick="showTaskDetail('${task.id}', '${actualSessionId}')"
+               data-subject="${safeSubject}"
+               data-created="${task.createdAt}"
+               data-updated="${task.updatedAt || task.createdAt}"
+               onmouseenter="showTimelineTooltip(event, this.dataset.subject, this.dataset.created, this.dataset.updated)"
+               onmouseleave="hideTimelineTooltip()">
+            <div class="timeline-row-label" title="${safeSubject}">#${task.id} ${escapeHtml(task.subject)}</div>
+            <div class="timeline-row-track">
+              <div class="timeline-bar ${statusClass}" style="left: ${leftPct}%; width: ${widthPct}%;"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function formatTimelineLabel(timestamp, totalSpan) {
+      const date = new Date(timestamp);
+      const hours = totalSpan / 3600000;
+
+      if (hours < 1) {
+        // Show minutes
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      } else if (hours < 24) {
+        // Show hours:minutes
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      } else {
+        // Show date + time
+        return date.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' +
+               date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      }
+    }
+
+    function showTimelineTooltip(event, title, createdAt, updatedAt) {
+      const tooltip = document.getElementById('timeline-tooltip');
+      document.getElementById('tooltip-title').textContent = title;
+
+      const created = new Date(createdAt);
+      const updated = new Date(updatedAt);
+      const durationMs = updated - created;
+      let durationStr;
+      if (durationMs < 60000) durationStr = Math.round(durationMs / 1000) + 's';
+      else if (durationMs < 3600000) durationStr = Math.round(durationMs / 60000) + 'm';
+      else durationStr = (durationMs / 3600000).toFixed(1) + 'h';
+
+      document.getElementById('tooltip-time').textContent =
+        `${created.toLocaleString()} → ${updated.toLocaleString()} (${durationStr})`;
+
+      tooltip.style.left = (event.clientX + 12) + 'px';
+      tooltip.style.top = (event.clientY - 10) + 'px';
+      tooltip.classList.add('visible');
+    }
+
+    function hideTimelineTooltip() {
+      document.getElementById('timeline-tooltip').classList.remove('visible');
+    }
+
     // --- Notification functions ---
 
     function toggleNotifications() {
@@ -2638,6 +2953,9 @@
     loadTheme();
     loadPreferences();
     updateNotificationButton();
+    if (currentView === 'timeline') {
+      switchView('timeline');
+    }
     setupEventSource();
 
     // Fetch sessions and show newest one by default
@@ -2683,6 +3001,23 @@
               <tr>
                 <td style="padding: 4px 0; color: var(--text-secondary);"><kbd style="background: var(--bg-hover); padding: 2px 6px; border-radius: 4px; font-family: monospace;">D</kbd></td>
                 <td style="padding: 4px 0; color: var(--text-primary);">Delete selected task</td>
+              </tr>
+            </table>
+          </div>
+          <div>
+            <h4 style="margin: 0 0 8px 0; color: var(--text-primary); font-size: 14px; font-weight: 600;">Features</h4>
+            <table style="width: 100%; font-size: 13px;">
+              <tr>
+                <td style="padding: 4px 0; color: var(--text-secondary);">Bell icon</td>
+                <td style="padding: 4px 0; color: var(--text-primary);">Desktop + sound notifications on task completion</td>
+              </tr>
+              <tr>
+                <td style="padding: 4px 0; color: var(--text-secondary);">View toggle</td>
+                <td style="padding: 4px 0; color: var(--text-primary);">Switch between kanban and timeline views</td>
+              </tr>
+              <tr>
+                <td style="padding: 4px 0; color: var(--text-secondary);">Archive</td>
+                <td style="padding: 4px 0; color: var(--text-primary);">Sessions older than 7 days with no active tasks auto-archive</td>
               </tr>
             </table>
           </div>

@@ -281,7 +281,11 @@ app.get('/api/sessions/:sessionId', async (req, res) => {
 
     for (const file of taskFiles) {
       try {
-        const task = JSON.parse(readFileSync(path.join(sessionPath, file), 'utf8'));
+        const taskPath = path.join(sessionPath, file);
+        const task = JSON.parse(readFileSync(taskPath, 'utf8'));
+        const taskStat = statSync(taskPath);
+        task.createdAt = taskStat.birthtime.toISOString();
+        task.updatedAt = taskStat.mtime.toISOString();
         tasks.push(task);
       } catch (e) {
         console.error(`Error parsing ${file}:`, e);
@@ -318,9 +322,13 @@ app.get('/api/tasks/all', async (req, res) => {
 
       for (const file of taskFiles) {
         try {
-          const task = JSON.parse(readFileSync(path.join(sessionPath, file), 'utf8'));
+          const taskPath = path.join(sessionPath, file);
+          const task = JSON.parse(readFileSync(taskPath, 'utf8'));
+          const taskStat = statSync(taskPath);
           allTasks.push({
             ...task,
+            createdAt: taskStat.birthtime.toISOString(),
+            updatedAt: taskStat.mtime.toISOString(),
             sessionId: sessionDir.name,
             sessionName: getSessionDisplayName(sessionDir.name, meta),
             project: meta.project || null
