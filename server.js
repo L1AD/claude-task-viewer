@@ -9,7 +9,9 @@ const chokidar = require('chokidar');
 const os = require('os');
 
 const app = express();
-const PORT = process.env.PORT || 3456;
+const DEFAULT_PORT = 3456;
+const explicitPort = process.env.PORT ? parseInt(process.env.PORT, 10) : null;
+const MAX_PORT_ATTEMPTS = 10;
 
 // Parse --dir flag for custom Claude directory
 function getClaudeDir() {
@@ -465,12 +467,26 @@ projectsWatcher.on('all', (event, filePath) => {
   }
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`Claude Task Viewer running at http://localhost:${PORT}`);
+// Start server with auto port discovery
+function startServer(port, attempt = 0) {
+  const server = app.listen(port, () => {
+    console.log(`Claude Task Viewer running at http://localhost:${port}`);
 
-  // Open browser if --open flag is passed
-  if (process.argv.includes('--open')) {
-    import('open').then(open => open.default(`http://localhost:${PORT}`));
-  }
-});
+    // Open browser if --open flag is passed
+    if (process.argv.includes('--open')) {
+      import('open').then(open => open.default(`http://localhost:${port}`));
+    }
+  });
+
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE' && !explicitPort && attempt < MAX_PORT_ATTEMPTS) {
+      console.log(`Port ${port} is in use, trying ${port + 1}...`);
+      startServer(port + 1, attempt + 1);
+    } else {
+      console.error(`Failed to start server on port ${port}: ${err.message}`);
+      process.exit(1);
+    }
+  });
+}
+
+startServer(explicitPort || DEFAULT_PORT);
