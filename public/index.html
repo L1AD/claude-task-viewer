@@ -2974,14 +2974,18 @@
     }
     setupEventSource();
 
-    // Fetch sessions and show newest one by default
+    // Fetch sessions and show the newest one that actually has tasks. Sessions
+    // without a tasks directory are legitimate and listed, but opening one on
+    // boot shows an empty board and 404s /api/sessions/:id on every refresh,
+    // so they are a poor default landing view.
     fetchSessions().then(() => {
-      if (sessions.length > 0) {
-        // Sessions are already sorted by newest first from API
-        fetchTasks(sessions[0].id);
-      } else {
+      if (sessions.length === 0) {
         showAllTasks();
+        return;
       }
+      // already sorted newest-first by the API
+      const landing = sessions.find(s => s.hasTasks !== false) || sessions[0];
+      fetchTasks(landing.id);
     });
   </script>
 
