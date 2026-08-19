@@ -385,6 +385,12 @@
       font-variant-numeric: tabular-nums;
     }
 
+    .session-no-tasks {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
     .session-time {
       font-size: 10px;
       color: var(--text-muted);
@@ -1515,6 +1521,7 @@
           </select>
           <select id="session-filter" class="filter-dropdown" onchange="filterBySessions(this.value)">
             <option value="all">All Sessions</option>
+            <option value="with-tasks">With Tasks</option>
             <option value="active">Active Only</option>
           </select>
         </div>
@@ -1697,7 +1704,8 @@
           oldStatuses.set(key, task.status);
         }
 
-        const res = await fetch(`/api/sessions?limit=${sessionLimit}`);
+        const withTasks = sessionFilter === 'with-tasks' ? '&withTasks=1' : '';
+        const res = await fetch(`/api/sessions?limit=${sessionLimit}${withTasks}`);
         sessions = await res.json();
         console.log('[fetchSessions] Sessions loaded:', sessions.length);
 
@@ -2045,6 +2053,10 @@
       let filteredSessions = sessions;
       if (sessionFilter === 'active') {
         filteredSessions = filteredSessions.filter(s => s.pending > 0 || s.inProgress > 0);
+      } else if (sessionFilter === 'with-tasks') {
+        // the server already applied this before limiting; kept as a no-op
+        // safety net so the option still works against an older server
+        filteredSessions = filteredSessions.filter(s => s.hasTasks !== false);
       }
       if (filterProject) {
         filteredSessions = filteredSessions.filter(s => s.project === filterProject);
@@ -2159,10 +2171,12 @@
           </div>
           ${secondaryName ? `<div class="session-secondary">${escapeHtml(secondaryName)}</div>` : ''}
           ${gitBranch ? `<div class="session-branch">${gitBranch}</div>` : ''}
-          <div class="session-progress">
+          ${session.hasTasks === false
+            ? '<div class="session-progress"><span class="session-no-tasks">No tasks</span></div>'
+            : `<div class="session-progress">
             <div class="progress-bar"><div class="progress-fill" style="width: ${percent}%"></div></div>
             <span class="progress-text">${session.completed}/${total}</span>
-          </div>
+          </div>`}
           <div class="session-time">${formatDate(session.modifiedAt)}</div>
         </button>
       `;
@@ -2672,7 +2686,9 @@
     function filterBySessions(value) {
       sessionFilter = value;
       localStorage.setItem('sessionFilter', sessionFilter);
-      renderSessions();
+      // 'with-tasks' is applied server-side (before the limit), so the session
+      // list has to be refetched rather than just re-rendered
+      fetchSessions();
     }
 
     function changeSessionLimit(value) {

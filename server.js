@@ -189,6 +189,9 @@ app.get('/api/sessions', async (req, res) => {
     // Parse limit parameter (default: 20, "all" for unlimited)
     const limitParam = req.query.limit || '20';
     const limit = limitParam === 'all' ? null : parseInt(limitParam, 10);
+    // Filtering has to happen before the limit, or "N most recent" silently
+    // becomes "however many of the N most recent happen to match".
+    const withTasksOnly = req.query.withTasks === '1';
 
     const metadata = loadSessionMetadata();
     const sessionsMap = new Map();
@@ -244,6 +247,7 @@ app.get('/api/sessions', async (req, res) => {
             completed,
             inProgress,
             pending,
+            hasTasks: true,
             createdAt: meta.created || null,
             modifiedAt: modifiedAt
           });
@@ -251,8 +255,48 @@ app.get('/api/sessions', async (req, res) => {
       }
     }
 
+    // Then add sessions known only from the transcripts in PROJECTS_DIR.
+    // Claude Code only creates a tasks directory once a session actually
+    // writes a todo, so a session that never used one was previously
+    // unreachable through any endpoint.
+    for (const [sessionId, meta] of Object.entries(metadata)) {
+      if (sessionsMap.has(sessionId)) continue;
+
+      // mtime of the transcript, not of a directory. The task-dir fallback
+      // above uses directory mtime, which Claude Code bumps when it removes
+      // its .lock at session end -- that timestamp reflects teardown rather
+      // than activity, so it is not repeated here.
+      let modifiedAt = null;
+      try {
+        modifiedAt = statSync(meta.jsonlPath).mtime.toISOString();
+      } catch (e) {
+        continue; // transcript vanished between the scan and now
+      }
+
+      sessionsMap.set(sessionId, {
+        id: sessionId,
+        name: getSessionDisplayName(sessionId, meta),
+        slug: meta.slug || null,
+        project: meta.project || null,
+        description: meta.description || null,
+        gitBranch: meta.gitBranch || null,
+        taskCount: 0,
+        completed: 0,
+        inProgress: 0,
+        pending: 0,
+        hasTasks: false,
+        createdAt: meta.created || null,
+        modifiedAt
+      });
+    }
+
     // Convert map to array and sort by most recently modified
     let sessions = Array.from(sessionsMap.values());
+
+    if (withTasksOnly) {
+      sessions = sessions.filter(s => s.hasTasks);
+    }
+
     sessions.sort((a, b) => new Date(b.modifiedAt) - new Date(a.modifiedAt));
 
     // Apply limit if specified
