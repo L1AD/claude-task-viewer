@@ -39,6 +39,7 @@ const clients = new Set();
 
 // Cache for session metadata (refreshed periodically)
 let sessionMetadataCache = {};
+let sessionAliasCache = {};
 let lastMetadataRefresh = 0;
 const METADATA_CACHE_TTL = 10000; // 10 seconds
 
@@ -110,6 +111,9 @@ function loadSessionMetadata() {
   }
 
   const metadata = {};
+  // 8-hex-prefix -> [full session ids]. Used to build aliases below; a prefix
+  // claimed by more than one session is dropped rather than guessed at.
+  const prefixOwners = {};
 
   try {
     if (!existsSync(PROJECTS_DIR)) {
@@ -138,6 +142,11 @@ function loadSessionMetadata() {
           project: sessionInfo.projectPath || null,
           jsonlPath: jsonlPath
         };
+
+        const prefix = sessionId.slice(0, 8);
+        if (/^[0-9a-f]{8}$/i.test(prefix)) {
+          (prefixOwners[prefix] = prefixOwners[prefix] || []).push(sessionId);
+        }
       }
 
       // Also check sessions-index.json for custom names (if /rename was used)
@@ -164,9 +173,34 @@ function loadSessionMetadata() {
     console.error('Error loading session metadata:', e);
   }
 
+  // Newer Claude Code names task dirs session-XXXXXXXX (first 8 chars of the
+  // session UUID) while the transcript is still <full-uuid>.jsonl, so the
+  // metadata lookup misses and every such session loses its name and project.
+  //
+  // 8 hex chars is only 32 bits, so prefixes do collide -- roughly 1% odds by
+  // ~9,300 sessions. Rather than guess, only alias a prefix owned by exactly
+  // one session; on a collision we emit nothing and behaviour is unchanged.
+  const aliases = {};
+  for (const [prefix, owners] of Object.entries(prefixOwners)) {
+    if (owners.length !== 1) continue;
+    aliases[prefix] = owners[0];
+    aliases[`session-${prefix}`] = owners[0];
+  }
+
   sessionMetadataCache = metadata;
+  sessionAliasCache = aliases;
   lastMetadataRefresh = now;
   return metadata;
+}
+
+/**
+ * Look up session metadata by task-directory name, falling back to an
+ * unambiguous short-id alias. Exact matches always win.
+ */
+function getSessionMeta(metadata, dirName) {
+  if (metadata[dirName]) return metadata[dirName];
+  const aliased = sessionAliasCache[dirName];
+  return (aliased && metadata[aliased]) || {};
 }
 
 /**
@@ -228,7 +262,7 @@ app.get('/api/sessions', async (req, res) => {
           }
 
           // Get metadata for this session
-          const meta = metadata[entry.name] || {};
+          const meta = getSessionMeta(metadata, entry.name);
 
           // Use newest task file mtime, or fall back to directory mtime if no tasks
           const modifiedAt = newestTaskMtime ? newestTaskMtime.toISOString() : stat.mtime.toISOString();
@@ -318,7 +352,7 @@ app.get('/api/tasks/all', async (req, res) => {
     for (const sessionDir of sessionDirs) {
       const sessionPath = path.join(TASKS_DIR, sessionDir.name);
       const taskFiles = readdirSync(sessionPath).filter(f => f.endsWith('.json'));
-      const meta = metadata[sessionDir.name] || {};
+      const meta = getSessionMeta(metadata, sessionDir.name);
 
       for (const file of taskFiles) {
         try {
