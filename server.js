@@ -58,10 +58,12 @@ function readSessionInfoFromJsonl(jsonlPath) {
   try {
     if (!existsSync(jsonlPath)) return result;
 
-    // Read first 64KB - should contain custom-title and at least one message with slug/cwd
+    // Read first 1MB - the first user message can be huge (large CLAUDE.md /
+    // rule imports get embedded in it), pushing slug/cwd past a small window
+    const READ_WINDOW = 1048576;
     const fd = require('fs').openSync(jsonlPath, 'r');
-    const buffer = Buffer.alloc(65536);
-    const bytesRead = require('fs').readSync(fd, buffer, 0, 65536, 0);
+    const buffer = Buffer.alloc(READ_WINDOW);
+    const bytesRead = require('fs').readSync(fd, buffer, 0, READ_WINDOW, 0);
     require('fs').closeSync(fd);
 
     const content = buffer.toString('utf8', 0, bytesRead);
@@ -92,6 +94,17 @@ function readSessionInfoFromJsonl(jsonlPath) {
       } catch (e) {
         // Skip malformed lines
       }
+    }
+
+    // Fallback: a single giant line (or one truncated at the window edge)
+    // fails JSON.parse above, so regex-scan the raw content for the fields
+    if (!result.slug) {
+      const m = content.match(/"slug":"([^"]+)"/);
+      if (m) result.slug = m[1];
+    }
+    if (!result.projectPath) {
+      const m = content.match(/"cwd":"([^"]+)"/);
+      if (m) result.projectPath = m[1];
     }
   } catch (e) {
     // Return partial results
