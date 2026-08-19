@@ -1498,28 +1498,29 @@
         <div class="search-container">
           <input
             id="search-input"
+            aria-label="Search tasks, sessions and projects"
             type="text"
             class="search-input"
             placeholder="Search tasks, sessions, projects..."
             oninput="handleSearch(this.value)"
           />
-          <button id="search-clear-btn" class="search-clear" onclick="clearSearch()" title="Clear search">
+          <button id="search-clear-btn" class="search-clear" onclick="clearSearch()" title="Clear search" aria-label="Clear search">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M18 6L6 18M6 6l12 12"/>
             </svg>
           </button>
         </div>
         <div class="filter-row">
-          <select id="project-filter" class="filter-dropdown" onchange="filterByProject(this.value)">
+          <select id="project-filter" class="filter-dropdown" aria-label="Filter by project" onchange="filterByProject(this.value)">
             <option value="">All Projects</option>
           </select>
-          <select id="session-filter" class="filter-dropdown" onchange="filterBySessions(this.value)">
+          <select id="session-filter" class="filter-dropdown" aria-label="Filter sessions by activity" onchange="filterBySessions(this.value)">
             <option value="all">All Sessions</option>
             <option value="active">Active Only</option>
           </select>
         </div>
         <div class="filter-row">
-          <select id="session-limit" class="filter-dropdown" onchange="changeSessionLimit(this.value)">
+          <select id="session-limit" class="filter-dropdown" aria-label="Number of sessions to show" onchange="changeSessionLimit(this.value)">
             <option value="10">Show 10</option>
             <option value="20">Show 20</option>
             <option value="50">Show 50</option>
@@ -1641,7 +1642,7 @@
     <aside id="detail-panel" class="detail-panel">
       <header class="detail-header">
         <h3>Task Details</h3>
-        <button id="close-detail" class="detail-close">
+        <button id="close-detail" class="detail-close" aria-label="Close task details">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M6 18L18 6M6 6l12 12"/>
           </svg>
@@ -2974,7 +2975,7 @@
     <div class="modal" onclick="event.stopPropagation()">
       <div class="modal-header">
         <h3 class="modal-title">Keyboard Shortcuts</h3>
-        <button class="modal-close" onclick="closeHelpModal()">
+        <button class="modal-close" onclick="closeHelpModal()" aria-label="Close keyboard shortcuts">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 6L6 18M6 6l12 12"/>
           </svg>
@@ -3034,7 +3035,7 @@
     <div class="modal" onclick="event.stopPropagation()" style="max-width: 400px;">
       <div class="modal-header">
         <h3 class="modal-title">Delete Task</h3>
-        <button class="modal-close" onclick="closeDeleteConfirmModal()">
+        <button class="modal-close" onclick="closeDeleteConfirmModal()" aria-label="Close delete confirmation">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 6L6 18M6 6l12 12"/>
           </svg>
@@ -3055,7 +3056,7 @@
     <div class="modal" onclick="event.stopPropagation()" style="max-width: 500px;">
       <div class="modal-header">
         <h3 class="modal-title">Delete All Tasks</h3>
-        <button class="modal-close" onclick="closeDeleteSessionTasksModal()">
+        <button class="modal-close" onclick="closeDeleteSessionTasksModal()" aria-label="Close delete confirmation">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 6L6 18M6 6l12 12"/>
           </svg>
@@ -3077,7 +3078,7 @@
     <div class="modal" onclick="event.stopPropagation()" style="max-width: 500px;">
       <div class="modal-header">
         <h3 class="modal-title">Deletion Result</h3>
-        <button class="modal-close" onclick="closeDeleteResultModal()">
+        <button class="modal-close" onclick="closeDeleteResultModal()" aria-label="Close deletion result">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 6L6 18M6 6l12 12"/>
           </svg>
@@ -3105,7 +3106,7 @@
           </svg>
           Cannot Start Blocked Task
         </h3>
-        <button class="modal-close" onclick="closeBlockedTaskModal()">
+        <button class="modal-close" onclick="closeBlockedTaskModal()" aria-label="Close blocked task warning">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 6L6 18M6 6l12 12"/>
           </svg>
