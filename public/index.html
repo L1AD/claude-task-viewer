@@ -1962,7 +1962,10 @@
       }
 
       container.innerHTML = activeTasks.map(task => `
-        <div class="live-item" onclick="openLiveTask('${task.sessionId}', '${task.id}')">
+        <div class="live-item" role="button" tabindex="0"
+             data-action="open-live-task"
+             data-session-id="${escapeHtml(task.sessionId)}"
+             data-task-id="${escapeHtml(task.id)}">
           <span class="pulse"></span>
           <div class="live-item-content">
             <div class="live-item-action">${escapeHtml(task.activeForm || task.subject)}</div>
@@ -2152,7 +2155,7 @@
       const tooltip = [timeDisplay, gitBranch ? `Branch: ${gitBranch}` : ''].filter(Boolean).join(' | ');
 
       return `
-        <button onclick="fetchTasks('${session.id}')" class="session-item ${isActive ? 'active' : ''} ${isArchived ? 'archived' : ''}" title="${tooltip}">
+        <button data-action="select-session" data-session-id="${escapeHtml(session.id)}" class="session-item ${isActive ? 'active' : ''} ${isArchived ? 'archived' : ''}" title="${tooltip}">
           <div class="session-name">
             <span>${escapeHtml(primaryName)}</span>
             ${hasInProgress ? '<span class="pulse"></span>' : ''}
@@ -2180,7 +2183,7 @@
       // Create header with delete button
       sessionTitle.innerHTML = `
         <span style="flex: 1;">${escapeHtml(displayName)}</span>
-        <button class="icon-btn icon-btn-danger" onclick="deleteAllSessionTasks('${session.id}')" title="Delete all tasks in this session">
+        <button class="icon-btn icon-btn-danger" data-action="delete-session-tasks" data-session-id="${escapeHtml(session.id)}" title="Delete all tasks in this session">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
           </svg>
@@ -2231,7 +2234,10 @@
 
       return `
         <div
-          onclick="showTaskDetail('${task.id}', '${actualSessionId}')"
+          role="button" tabindex="0"
+          data-action="show-task"
+          data-task-id="${escapeHtml(task.id)}"
+          data-session-id="${escapeHtml(actualSessionId)}"
           class="task-card ${statusClass} ${isBlocked ? 'blocked' : ''}">
           <div class="task-id">
             <span>#${taskId}</span>
@@ -2396,7 +2402,9 @@
 
         <div class="detail-section note-section">
           <div class="detail-label">Add Note</div>
-          <form class="note-form" onsubmit="addNote(event, '${task.id}', '${actualSessionId}')">
+          <form class="note-form" data-action="add-note"
+                data-task-id="${escapeHtml(task.id)}"
+                data-session-id="${escapeHtml(actualSessionId)}">
             <textarea id="note-input" class="note-input" placeholder="Add a note for Claude..." rows="3"></textarea>
             <button type="submit" class="note-submit">Add Note</button>
           </form>
@@ -2570,6 +2578,48 @@
     }
 
     document.getElementById('close-detail').onclick = closeDetailPanel;
+
+    // Delegated handlers. These replace inline onclick/onsubmit attributes that
+    // interpolated task and session ids straight into a JS string inside an HTML
+    // attribute -- two nested contexts that HTML escaping cannot secure, because
+    // the parser decodes entities before the JS is compiled. Ids now travel as
+    // data-* values and are read via dataset, so there is no JS to inject into.
+    function dispatchAction(el, event) {
+      const { action, taskId, sessionId } = el.dataset;
+      switch (action) {
+        case 'show-task':            showTaskDetail(taskId, sessionId); return true;
+        case 'select-session':       fetchTasks(sessionId); return true;
+        case 'open-live-task':       openLiveTask(sessionId, taskId); return true;
+        case 'delete-session-tasks': deleteAllSessionTasks(sessionId); return true;
+        case 'add-note':             addNote(event, taskId, sessionId); return true;
+        default: return false;
+      }
+    }
+
+    document.addEventListener('click', (e) => {
+      // closest() already resolves to the innermost [data-action], and this
+      // listener is on document, so a nested action dispatches exactly once --
+      // no stopPropagation needed, and adding one would break other listeners.
+      const el = e.target.closest('[data-action]');
+      if (!el || el.tagName === 'FORM') return;
+      dispatchAction(el, e);
+    });
+
+    document.addEventListener('submit', (e) => {
+      const el = e.target.closest('form[data-action]');
+      if (el) dispatchAction(el, e);
+    });
+
+    // Task cards and timeline rows are divs, so they get no keyboard activation
+    // for free. role="button" + tabindex are on the elements; this supplies the
+    // behaviour those roles promise.
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const el = e.target.closest('[data-action]');
+      if (!el || el.tagName === 'BUTTON' || el.tagName === 'FORM') return;
+      e.preventDefault();
+      dispatchAction(el, e);
+    });
 
     document.addEventListener('keydown', (e) => {
       // Ignore if typing in input/textarea
@@ -2791,7 +2841,10 @@
 
         return `
           <div class="timeline-row"
-               onclick="showTaskDetail('${task.id}', '${actualSessionId}')"
+               role="button" tabindex="0"
+               data-action="show-task"
+               data-task-id="${escapeHtml(task.id)}"
+               data-session-id="${escapeHtml(actualSessionId)}"
                data-subject="${safeSubject}"
                data-created="${task.createdAt}"
                data-updated="${task.updatedAt || task.createdAt}"
