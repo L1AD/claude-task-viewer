@@ -33,6 +33,17 @@ const CLAUDE_DIR = getClaudeDir();
 const TASKS_DIR = path.join(CLAUDE_DIR, 'tasks');
 const PROJECTS_DIR = path.join(CLAUDE_DIR, 'projects');
 
+// Express URL-decodes route params, so a request for
+//   /api/tasks/..%2f..%2f..%2fDocuments%2fx/y
+// yields sessionId === '../../../Documents/x' and path.join() then walks
+// straight out of TASKS_DIR. Session dirs and task ids are always plain
+// tokens, so reject anything else rather than trying to normalise it.
+const SAFE_ID = /^[A-Za-z0-9._-]{1,128}$/;
+
+function isSafeId(value) {
+  return typeof value === 'string' && value !== '.' && value !== '..' && SAFE_ID.test(value);
+}
+
 // Get running Claude Code containers with their project paths
 // SSE clients for live updates
 const clients = new Set();
@@ -270,6 +281,10 @@ app.get('/api/sessions', async (req, res) => {
 // API: Get tasks for a session
 app.get('/api/sessions/:sessionId', async (req, res) => {
   try {
+    if (!isSafeId(req.params.sessionId)) {
+      return res.status(400).json({ error: 'Invalid session id' });
+    }
+
     const sessionPath = path.join(TASKS_DIR, req.params.sessionId);
 
     if (!existsSync(sessionPath)) {
@@ -283,6 +298,12 @@ app.get('/api/sessions/:sessionId', async (req, res) => {
       try {
         const taskPath = path.join(sessionPath, file);
         const task = JSON.parse(readFileSync(taskPath, 'utf8'));
+
+        if (!isSafeId(task.id)) {
+          console.warn(`Skipping ${taskPath}: unsafe task id`);
+          continue;
+        }
+
         const taskStat = statSync(taskPath);
         task.createdAt = taskStat.birthtime.toISOString();
         task.updatedAt = taskStat.mtime.toISOString();
@@ -324,6 +345,12 @@ app.get('/api/tasks/all', async (req, res) => {
         try {
           const taskPath = path.join(sessionPath, file);
           const task = JSON.parse(readFileSync(taskPath, 'utf8'));
+
+          if (!isSafeId(task.id)) {
+            console.warn(`Skipping ${taskPath}: unsafe task id`);
+            continue;
+          }
+
           const taskStat = statSync(taskPath);
           allTasks.push({
             ...task,
@@ -351,6 +378,10 @@ app.post('/api/tasks/:sessionId/:taskId/note', async (req, res) => {
   try {
     const { sessionId, taskId } = req.params;
     const { note } = req.body;
+
+    if (!isSafeId(sessionId) || !isSafeId(taskId)) {
+      return res.status(400).json({ error: 'Invalid session or task id' });
+    }
 
     if (!note || !note.trim()) {
       return res.status(400).json({ error: 'Note cannot be empty' });
@@ -383,6 +414,11 @@ app.post('/api/tasks/:sessionId/:taskId/note', async (req, res) => {
 app.delete('/api/tasks/:sessionId/:taskId', async (req, res) => {
   try {
     const { sessionId, taskId } = req.params;
+
+    if (!isSafeId(sessionId) || !isSafeId(taskId)) {
+      return res.status(400).json({ error: 'Invalid session or task id' });
+    }
+
     const taskPath = path.join(TASKS_DIR, sessionId, `${taskId}.json`);
 
     if (!existsSync(taskPath)) {
