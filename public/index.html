@@ -2,8 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Claude Tasks</title>
+  <meta name="theme-color" content="#E86F33">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Claude Tasks">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/svg+xml" href="/icon.svg">
+  <link rel="apple-touch-icon" href="/icon-180.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
@@ -29,7 +37,15 @@
       --warning-dim: rgba(240, 180, 41, 0.12);
       --mono: 'IBM Plex Mono', monospace;
       --serif: 'Playfair Display', serif;
+
+      /* Layout / touch */
+      --tl-label-w: 148px;
+      --tl-gutter: 160px;   /* label width + gap; also read by renderTimeline() */
+      --drawer-w: 280px;
+      --tap: 44px;
     }
+
+    html { -webkit-text-size-adjust: 100%; }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -41,6 +57,14 @@
       line-height: 1.5;
       min-height: 100vh;
       -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior-y: none;
+    }
+
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    .column-tasks, .sessions-list, .live-updates, .detail-content, .timeline {
+      overscroll-behavior: contain;
     }
 
     /* Subtle scan-line texture */
@@ -66,7 +90,7 @@
     ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
     /* Layout */
-    .app { display: flex; height: 100vh; }
+    .app { display: flex; height: 100vh; height: 100dvh; overflow: hidden; }
 
     /* Sidebar */
     .sidebar {
@@ -412,6 +436,7 @@
     /* Main */
     .main {
       flex: 1;
+      position: relative;
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -1026,7 +1051,7 @@
     .timeline-axis {
       display: flex;
       align-items: center;
-      padding: 0 0 8px 160px;
+      padding: 0 0 8px var(--tl-gutter);
       border-bottom: 1px solid var(--border);
       margin-bottom: 8px;
       position: relative;
@@ -1057,7 +1082,7 @@
     }
 
     .timeline-row-label {
-      width: 148px;
+      width: var(--tl-label-w);
       flex-shrink: 0;
       font-size: 12px;
       color: var(--text-secondary);
@@ -1458,12 +1483,320 @@
       background: var(--bg-hover);
       border-color: var(--text-muted);
     }
+    /* ==================================================================
+       RESPONSIVE / TOUCH
+       Desktop-first overrides. Everything mobile lives below this line --
+       nothing above it has a media query, so this is the only place to
+       look (or delete).
+
+       Landmine: switchView() writes .kanban's `display` as an inline style,
+       which beats any media query. Never override .kanban { display } here;
+       the mobile single-column view hides *columns*, not the container.
+       ================================================================== */
+
+    /* Off at desktop; switched on inside the queries below. */
+    .menu-btn,
+    .drawer-scrim,
+    .kanban-tabs { display: none; }
+
+    /* ---------- <=1023px: sidebar -> drawer, detail panel -> sheet ------ */
+    /* 3 columns (320x3) + gaps (24x2) + padding (48) = 1056px minimum. */
+    @media (max-width: 1023px) {
+      .menu-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        z-index: 60;
+        width: var(--tap);
+        height: var(--tap);
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--text-secondary);
+        cursor: pointer;
+        padding: 0;
+      }
+      .menu-btn svg { width: 22px; height: 22px; }
+
+      /* translateX (not `left`) keeps the drawer on the compositor. */
+      /* Anchored right to match the menu button. To move it back to the left:
+         right -> left, translateX(100%) -> translateX(-100%), and swap the
+         border/padding sides. */
+      .sidebar {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        right: 0;
+        left: auto;
+        z-index: 70;
+        width: var(--drawer-w);
+        max-width: 86vw;
+        transform: translateX(100%);
+        transition: transform 0.22s cubic-bezier(.2,.8,.2,1);
+        will-change: transform;
+        border-right: none;
+        border-left: 1px solid var(--border);
+        padding-right: env(safe-area-inset-right);
+      }
+      /* Shadow only while open -- on a parked drawer it bleeds a dark band
+         down the left edge of the viewport. */
+      body.drawer-open .sidebar {
+        transform: translateX(0);
+        box-shadow: 0 0 32px rgba(0,0,0,0.5);
+      }
+
+      .drawer-scrim {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 65;
+        background: rgba(0,0,0,0.55);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.22s ease;
+      }
+      body.drawer-open .drawer-scrim { opacity: 1; pointer-events: auto; }
+
+      /* Clear the hamburger. The empty state has no header, which is why the
+         button lives in .main rather than in .view-header. */
+      .view-header { padding-right: calc(var(--tap) + 32px); }
+      .empty-state { padding-top: calc(var(--tap) + 24px); }
+
+      /* Detail panel becomes a full-screen sheet. The existing .visible
+         toggle is unchanged -- this just rides on top of it.
+         z-index 80 > drawer 70 so a sheet never opens behind the scrim. */
+      .detail-panel {
+        position: fixed;
+        inset: 0;
+        z-index: 80;
+        width: 100%;
+        border-left: none;
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+      .detail-header {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: var(--bg-surface);
+      }
+      .detail-close { width: var(--tap); height: var(--tap); }
+      .detail-close svg { width: 20px; height: 20px; }
+      .detail-content { -webkit-overflow-scrolling: touch; }
+    }
+
+    /* ---------- <=767px: phone ---------------------------------------- */
+    @media (max-width: 767px) {
+      /* Status tabs replace the 3-up board. State is <body data-kanban-tab>;
+         its effect is scoped to this query, so crossing the breakpoint needs
+         no resize listener -- desktop just ignores the attribute. */
+      .kanban-tabs {
+        display: flex;
+        gap: 6px;
+        padding: 10px 12px;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background: var(--bg-surface);
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+      }
+      .session-view.timeline-mode .kanban-tabs { display: none; }
+
+      .kanban-tab {
+        flex: 1;
+        min-width: 0;
+        min-height: var(--tap);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 0 4px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-family: var(--mono);
+        font-size: 12px;
+        color: var(--text-tertiary);
+        cursor: pointer;
+      }
+      .kanban-tab-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .kanban-tab.active {
+        border-color: var(--accent);
+        background: var(--bg-hover);
+        color: var(--text-primary);
+      }
+
+      .kanban { padding: 12px; gap: 0; overflow-x: hidden; }
+      .kanban-column { width: 100%; }
+      .column-header { display: none; }  /* the tab bar replaces it */
+
+      body[data-kanban-tab="pending"]     .kanban-column:not([data-status="pending"])     { display: none; }
+      body[data-kanban-tab="in-progress"] .kanban-column:not([data-status="in-progress"]) { display: none; }
+      body[data-kanban-tab="completed"]   .kanban-column:not([data-status="completed"])   { display: none; }
+
+      /* Timeline. Custom props inherit, so overriding them on body reaches
+         both the CSS rules and renderTimeline()'s getComputedStyle read. */
+      body { --tl-label-w: 92px; --tl-gutter: 104px; }
+      .timeline { padding: 12px; }
+      .timeline-row { min-height: var(--tap); }
+      .timeline-row-label { font-size: 11px; }
+      .timeline-axis-label { font-size: 9px; }
+      .timeline-tooltip { max-width: calc(100vw - 24px); }
+
+      /* iOS refuses to not zoom on focus below 16px. Non-negotiable. */
+      input, select, textarea,
+      .search-input, .filter-dropdown { font-size: 16px; }
+      .search-input {
+        min-height: var(--tap);
+        padding: 10px 40px 10px 12px;
+      }
+      .filter-dropdown { min-height: var(--tap); padding: 10px 24px 10px 12px; }
+      .search-clear { top: 12px; right: 20px; width: 24px; height: 24px; }
+
+      /* Touch targets */
+      .icon-btn, .detail-close, .modal-close {
+        width: var(--tap);
+        height: var(--tap);
+      }
+      .icon-btn svg, .detail-close svg, .modal-close svg { width: 20px; height: 20px; }
+      .view-toggle-btn { min-width: var(--tap); min-height: var(--tap); }
+      .session-item { padding: 14px 16px; }
+      /* .column-tasks is a flex column with overflow-y:auto, so items shrink by
+         default -- min-height alone made the cards collapse onto 56px and spill
+         their text. flex-shrink:0 makes 56px a floor instead of a target. */
+      .live-item, .task-card { min-height: 56px; flex-shrink: 0; }
+
+      /* Type scale -- the 9-11px sizes are the readability problem */
+      body { font-size: 14px; }
+      .view-title { font-size: 18px; }
+      .view-meta { font-size: 12px; }
+      .task-title { font-size: 14px; }
+      .task-id, .task-desc, .task-session, .task-active { font-size: 12px; }
+      .task-badge { font-size: 11px; }
+      .session-name { font-size: 14px; }
+      .session-secondary, .session-branch, .session-time { font-size: 11px; }
+      .section-header { font-size: 11px; }
+      .column-count { font-size: 11px; }
+      .connection { font-size: 11px; }
+      .live-title, .live-meta { font-size: 12px; }
+
+      /* Header, phone. Three stacked rows:
+           1  title .............................. [delete] [menu]
+           2  13 tasks - project - 6h ago
+           3  100%  [kanban|timeline]  [theme]
+         Both header children are forced to full width so they wrap onto their
+         own rows instead of fighting over one line. */
+      .view-header {
+        padding: 12px 16px;
+        padding-right: calc(var(--tap) + 32px);
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 6px;
+      }
+      .view-header > div:first-child { flex: 1 1 100%; min-width: 0; }
+      .view-actions { flex: 1 1 100%; gap: 10px; margin-top: 2px; }
+
+      /* Title row: the text wraps inside its own column and the button is a
+         non-shrinking flex item pinned to the right of it. Inline flow put the
+         button in the text stream, so a title that filled the line pushed the
+         BUTTON onto the next row instead of wrapping the words. */
+      .view-title {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        font-size: 17px;
+        line-height: 1.35;
+      }
+      .view-title > span {
+        flex: 1 1 auto;
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+      /* Visually 32px -- a 44px box here inflates the title's line box and
+         spaces the wrapped lines unevenly. The transparent ::after reclaims
+         6px of tap area on the free edges (~38px effective); the remaining
+         two edges lose the hit test to the title text wrapping above and the
+         meta line below, which no z-index fixes since they are inline boxes
+         in the same flow. Acceptable: this is a confirm-guarded action. */
+      .view-title .icon-btn {
+        display: flex;
+        position: relative;
+        flex: 0 0 auto;
+        width: 32px;
+        height: 32px;
+        /* Centre it on the menu button's row: the menu sits at top:12px with
+           height var(--tap), and the title column starts at the same 12px. */
+        margin-top: calc(var(--tap) / 2 - 16px);
+      }
+      .view-title .icon-btn::after {
+        content: '';
+        position: absolute;
+        inset: -6px;
+      }
+      .view-title .icon-btn svg { width: 17px; height: 17px; }
+
+      .view-meta { margin-top: 4px; }
+      .view-progress .progress-bar { display: none; }
+      #notifications-toggle,
+      .view-actions .icon-btn[title^="Keyboard"] { display: none; }
+
+      /* Modal: its body holds raw width:100% tables */
+      .modal { width: calc(100% - 24px); padding: 20px; }
+      .modal-body { overflow-x: auto; }
+      .modal-body table { font-size: 13px; }
+
+      /* Safe areas */
+      .sidebar-footer { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+      .kanban, .timeline { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+    }
+
+    /* ---------- Touch capability (not width) --------------------------
+       Fixes sticky :hover on phones, touch laptops and iPads. Last so its
+       neutralizations win. Invisible in a devtools resize; very visible on
+       a real device. ------------------------------------------------- */
+    @media (hover: none) {
+      .task-card:hover {
+        background: var(--bg-elevated);
+        border-color: var(--border);
+        transform: none;
+      }
+      .session-item:hover { background: transparent; }
+      .live-item:hover { background: transparent; }
+      .timeline-row:hover { background: transparent; }
+      .icon-btn:hover {
+        background: transparent;
+        color: var(--text-tertiary);
+        border-color: var(--border);
+      }
+      .btn-primary:hover { transform: none; box-shadow: none; background: var(--accent); }
+
+      .task-card, .session-item, .icon-btn, .btn, .kanban-tab, .view-toggle-btn {
+        transition: transform 0.08s ease, background 0.1s ease;
+      }
+      .task-card:active { background: var(--bg-hover); transform: scale(0.985); }
+      .session-item:active { background: var(--bg-hover); }
+      .live-item:active { background: var(--bg-hover); }
+      .timeline-row:active { background: var(--bg-hover); }
+      .icon-btn:active, .view-toggle-btn:active, .btn:active, .kanban-tab:active {
+        background: var(--bg-hover);
+        transform: scale(0.95);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .sidebar, .drawer-scrim { transition: none; }
+      *, *::before, *::after { animation-duration: 0.01ms !important; }
+    }
   </style>
 </head>
-<body>
+<body data-kanban-tab="pending">
   <div class="app">
     <!-- Sidebar -->
-    <aside class="sidebar">
+    <aside id="app-sidebar" class="sidebar">
       <header class="sidebar-header">
         <div class="logo">
           <div class="logo-mark">
@@ -1493,7 +1826,7 @@
       <div class="sidebar-section flex-1">
         <div class="section-header">
           <span>Sessions</span>
-          <button onclick="showAllTasks()" style="background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; padding: 3px 8px; font-size: 10px; color: var(--text-secondary); cursor: pointer; font-family: var(--mono);">All Tasks</button>
+          <button onclick="selectAllTasks()" style="background: var(--bg-elevated); border: 1px solid var(--border); border-radius: 4px; padding: 3px 8px; font-size: 10px; color: var(--text-secondary); cursor: pointer; font-family: var(--mono);">All Tasks</button>
         </div>
         <div class="search-container">
           <input
@@ -1536,8 +1869,18 @@
       </footer>
     </aside>
 
+    <!-- Drawer scrim (mobile only) -->
+    <div id="drawer-scrim" class="drawer-scrim" onclick="closeDrawer()"></div>
+
     <!-- Main -->
     <main class="main">
+      <button id="menu-btn" class="menu-btn" onclick="openDrawer()"
+              aria-label="Open sessions menu" aria-controls="app-sidebar" aria-expanded="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 6h18M3 12h18M3 18h18"/>
+        </svg>
+      </button>
+
       <div id="no-session" class="empty-state">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
@@ -1594,8 +1937,30 @@
           </div>
         </header>
 
+        <!-- Status tabs (mobile only) -->
+        <div class="kanban-tabs" role="tablist" aria-label="Task status">
+          <button class="kanban-tab active" role="tab" aria-selected="true" data-status="pending"
+                  onclick="selectKanbanTab('pending')">
+            <span class="column-dot pending"></span>
+            <span class="kanban-tab-label">Pending</span>
+            <span id="tab-count-pending" class="column-count pending">0</span>
+          </button>
+          <button class="kanban-tab" role="tab" aria-selected="false" data-status="in-progress"
+                  onclick="selectKanbanTab('in-progress')">
+            <span class="column-dot in-progress"></span>
+            <span class="kanban-tab-label">Active</span>
+            <span id="tab-count-in-progress" class="column-count in-progress">0</span>
+          </button>
+          <button class="kanban-tab" role="tab" aria-selected="false" data-status="completed"
+                  onclick="selectKanbanTab('completed')">
+            <span class="column-dot completed"></span>
+            <span class="kanban-tab-label">Done</span>
+            <span id="tab-count-completed" class="column-count completed">0</span>
+          </button>
+        </div>
+
         <div class="kanban">
-          <div class="kanban-column">
+          <div class="kanban-column" data-status="pending">
             <div class="column-header">
               <span class="column-dot pending"></span>
               <span class="column-title pending">Pending</span>
@@ -1604,7 +1969,7 @@
             <div id="pending-tasks" class="column-tasks"></div>
           </div>
 
-          <div class="kanban-column">
+          <div class="kanban-column" data-status="in-progress">
             <div class="column-header">
               <span class="column-dot in-progress"></span>
               <span class="column-title in-progress">In Progress</span>
@@ -1613,7 +1978,7 @@
             <div id="in-progress-tasks" class="column-tasks"></div>
           </div>
 
-          <div class="kanban-column">
+          <div class="kanban-column" data-status="completed">
             <div class="column-header">
               <span class="column-dot completed"></span>
               <span class="column-title completed">Completed</span>
@@ -1683,6 +2048,9 @@
     const pendingCount = document.getElementById('pending-count');
     const inProgressCount = document.getElementById('in-progress-count');
     const completedCount = document.getElementById('completed-count');
+    const tabCountPending = document.getElementById('tab-count-pending');
+    const tabCountInProgress = document.getElementById('tab-count-in-progress');
+    const tabCountCompleted = document.getElementById('tab-count-completed');
     const detailPanel = document.getElementById('detail-panel');
     const detailContent = document.getElementById('detail-content');
     const connectionStatus = document.getElementById('connection-status');
@@ -1972,7 +2340,20 @@
       `).join('');
     }
 
+    // User-initiated selection entry points. fetchTasks()/showAllTasks() are
+    // also driven by SSE refreshes, so the drawer close lives here, not there.
+    function selectSession(sessionId) {
+      closeDrawer();
+      return fetchTasks(sessionId);
+    }
+
+    function selectAllTasks() {
+      closeDrawer();
+      return showAllTasks();
+    }
+
     async function openLiveTask(sessionId, taskId) {
+      closeDrawer();
       await fetchTasks(sessionId);
       showTaskDetail(taskId, sessionId);
     }
@@ -2152,7 +2533,7 @@
       const tooltip = [timeDisplay, gitBranch ? `Branch: ${gitBranch}` : ''].filter(Boolean).join(' | ');
 
       return `
-        <button onclick="fetchTasks('${session.id}')" class="session-item ${isActive ? 'active' : ''} ${isArchived ? 'archived' : ''}" title="${tooltip}">
+        <button onclick="selectSession('${session.id}')" class="session-item ${isActive ? 'active' : ''} ${isArchived ? 'archived' : ''}" title="${tooltip}">
           <div class="session-name">
             <span>${escapeHtml(primaryName)}</span>
             ${hasInProgress ? '<span class="pulse"></span>' : ''}
@@ -2254,6 +2635,9 @@
       pendingCount.textContent = pending.length;
       inProgressCount.textContent = inProgress.length;
       completedCount.textContent = completed.length;
+      tabCountPending.textContent = pending.length;
+      tabCountInProgress.textContent = inProgress.length;
+      tabCountCompleted.textContent = completed.length;
 
       pendingTasks.innerHTML = pending.length > 0
         ? pending.map(renderTaskCard).join('')
@@ -2326,6 +2710,7 @@
 
       if (!task) return;
 
+      closeDrawer();
       detailPanel.classList.add('visible');
 
       const statusLabels = {
@@ -2438,6 +2823,21 @@
 
     function closeDetailPanel() {
       detailPanel.classList.remove('visible');
+    }
+
+    // --- Mobile drawer ---
+    // No body scroll lock needed: .app is height:100dvh; overflow:hidden,
+    // so <body> never scrolls in the first place.
+    function openDrawer() {
+      document.body.classList.add('drawer-open');
+      document.getElementById('menu-btn').setAttribute('aria-expanded', 'true');
+      document.getElementById('search-input').blur();
+    }
+
+    function closeDrawer() {
+      if (!document.body.classList.contains('drawer-open')) return;
+      document.body.classList.remove('drawer-open');
+      document.getElementById('menu-btn').setAttribute('aria-expanded', 'false');
     }
 
     let deleteTaskId = null;
@@ -2574,6 +2974,11 @@
     document.addEventListener('keydown', (e) => {
       // Ignore if typing in input/textarea
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+        return;
+      }
+
+      if (e.key === 'Escape' && document.body.classList.contains('drawer-open')) {
+        closeDrawer();
         return;
       }
 
@@ -2715,6 +3120,19 @@
       }
     }
 
+    // --- Mobile status tabs ---
+    // State lives on <body data-kanban-tab>; the *effect* is scoped inside the
+    // <=767px media query, so crossing the breakpoint needs no resize listener.
+    function selectKanbanTab(status) {
+      document.body.dataset.kanbanTab = status;
+      document.querySelectorAll('.kanban-tab').forEach(b => {
+        const on = b.dataset.status === status;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      localStorage.setItem('kanbanTab', status);
+    }
+
     function loadPreferences() {
       document.getElementById('session-filter').value = sessionFilter;
       document.getElementById('session-limit').value = sessionLimit;
@@ -2730,6 +3148,8 @@
       const timelineEl = document.getElementById('timeline-view');
       const kanbanBtn = document.getElementById('view-kanban-btn');
       const timelineBtn = document.getElementById('view-timeline-btn');
+
+      sessionView.classList.toggle('timeline-mode', view === 'timeline');
 
       if (view === 'kanban') {
         kanbanEl.style.display = 'flex';
@@ -2766,14 +3186,19 @@
 
       // Generate axis labels using percentage-based positioning
       const axisEl = document.getElementById('timeline-axis');
-      const labelCount = 6;
+      // 7 ticks of "01:23 AM" overlap solid once the track is ~250px wide.
+      const labelCount = window.innerWidth < 768 ? 2 : 6;
       axisEl.innerHTML = '';
+      // Read from <body>, not :root -- the mobile query overrides --tl-gutter
+      // on body, and custom properties inherit down from :root on desktop.
+      const gutter = getComputedStyle(document.body)
+        .getPropertyValue('--tl-gutter').trim() || '160px';
       for (let i = 0; i <= labelCount; i++) {
         const t = minTime + (span * i / labelCount);
         const pct = (i / labelCount) * 100;
         const label = document.createElement('span');
         label.className = 'timeline-axis-label';
-        label.style.left = `calc(160px + (100% - 172px) * ${pct} / 100)`;
+        label.style.left = `calc(${gutter} + (100% - ${gutter} - 12px) * ${pct} / 100)`;
         label.textContent = formatTimelineLabel(t, span);
         axisEl.appendChild(label);
       }
@@ -2795,7 +3220,7 @@
                data-subject="${safeSubject}"
                data-created="${task.createdAt}"
                data-updated="${task.updatedAt || task.createdAt}"
-               onmouseenter="showTimelineTooltip(event, this.dataset.subject, this.dataset.created, this.dataset.updated)"
+               onmouseenter="if (matchMedia('(hover: hover)').matches) showTimelineTooltip(event, this.dataset.subject, this.dataset.created, this.dataset.updated)"
                onmouseleave="hideTimelineTooltip()">
             <div class="timeline-row-label" title="${safeSubject}">#${task.id} ${escapeHtml(task.subject)}</div>
             <div class="timeline-row-track">
@@ -2838,10 +3263,30 @@
       document.getElementById('tooltip-time').textContent =
         `${created.toLocaleString()} → ${updated.toLocaleString()} (${durationStr})`;
 
-      tooltip.style.left = (event.clientX + 12) + 'px';
-      tooltip.style.top = (event.clientY - 10) + 'px';
       tooltip.classList.add('visible');
+      const r = tooltip.getBoundingClientRect();
+      const pad = 8;
+      let x = event.clientX + 12;
+      let y = event.clientY - 10;
+      x = Math.min(Math.max(pad, x), Math.max(pad, window.innerWidth - r.width - pad));
+      y = Math.min(Math.max(pad, y), Math.max(pad, window.innerHeight - r.height - pad));
+      tooltip.style.left = x + 'px';
+      tooltip.style.top = y + 'px';
     }
+
+    // Touch timeline: renderTimeline() rebuilds innerHTML on every SSE tick, so
+    // this is delegated rather than per-row. Spatial split -- tapping the label
+    // opens the detail sheet (the row's own onclick), tapping the bar track
+    // shows the tooltip. Tapping anywhere else dismisses it.
+    document.addEventListener('click', (e) => {
+      if (matchMedia('(hover: hover)').matches) return;
+      const track = e.target.closest('.timeline-row-track');
+      if (!track) { hideTimelineTooltip(); return; }
+      e.stopPropagation();
+      e.preventDefault();
+      const row = track.closest('.timeline-row');
+      showTimelineTooltip(e, row.dataset.subject, row.dataset.created, row.dataset.updated);
+    }, true);
 
     function hideTimelineTooltip() {
       document.getElementById('timeline-tooltip').classList.remove('visible');
@@ -2952,6 +3397,10 @@
     // Init
     loadTheme();
     loadPreferences();
+    selectKanbanTab(localStorage.getItem('kanbanTab') || 'pending');
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
     updateNotificationButton();
     if (currentView === 'timeline') {
       switchView('timeline');
