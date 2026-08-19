@@ -385,6 +385,12 @@
       font-variant-numeric: tabular-nums;
     }
 
+    .session-no-tasks {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
     .session-time {
       font-size: 10px;
       color: var(--text-muted);
@@ -1515,6 +1521,7 @@
           </select>
           <select id="session-filter" class="filter-dropdown" onchange="filterBySessions(this.value)">
             <option value="all">All Sessions</option>
+            <option value="with-tasks">With Tasks</option>
             <option value="active">Active Only</option>
           </select>
         </div>
@@ -1657,7 +1664,7 @@
     let currentSessionId = null;
     let currentTasks = [];
     let viewMode = 'session';
-    let sessionFilter = localStorage.getItem('sessionFilter') || 'all'; // 'all' or 'active'
+    let sessionFilter = localStorage.getItem('sessionFilter') || 'with-tasks'; // 'with-tasks' | 'all' | 'active'
     let sessionLimit = localStorage.getItem('sessionLimit') || '20'; // '10', '20', '50', 'all'
     let filterProject = null; // null = all projects, or project path to filter
     let searchQuery = ''; // Search query for fuzzy search
@@ -1697,7 +1704,8 @@
           oldStatuses.set(key, task.status);
         }
 
-        const res = await fetch(`/api/sessions?limit=${sessionLimit}`);
+        const withTasks = sessionFilter === 'with-tasks' ? '&withTasks=1' : '';
+        const res = await fetch(`/api/sessions?limit=${sessionLimit}${withTasks}`);
         sessions = await res.json();
         console.log('[fetchSessions] Sessions loaded:', sessions.length);
 
@@ -2045,6 +2053,10 @@
       let filteredSessions = sessions;
       if (sessionFilter === 'active') {
         filteredSessions = filteredSessions.filter(s => s.pending > 0 || s.inProgress > 0);
+      } else if (sessionFilter === 'with-tasks') {
+        // the server already applied this before limiting; kept as a no-op
+        // safety net so the option still works against an older server
+        filteredSessions = filteredSessions.filter(s => s.hasTasks !== false);
       }
       if (filterProject) {
         filteredSessions = filteredSessions.filter(s => s.project === filterProject);
@@ -2089,6 +2101,9 @@
         } else if (sessionFilter === 'active') {
           emptyMsg = 'No active sessions';
           emptyHint = 'Select "All Sessions" to see all';
+        } else if (sessionFilter === 'with-tasks') {
+          emptyMsg = 'No sessions with tasks';
+          emptyHint = 'Select "All Sessions" to include sessions that have none';
         }
         sessionsList.innerHTML = `
           <div style="padding: 24px 12px; text-align: center; color: var(--text-muted); font-size: 12px;">
@@ -2159,10 +2174,12 @@
           </div>
           ${secondaryName ? `<div class="session-secondary">${escapeHtml(secondaryName)}</div>` : ''}
           ${gitBranch ? `<div class="session-branch">${gitBranch}</div>` : ''}
-          <div class="session-progress">
+          ${session.hasTasks === false
+            ? '<div class="session-progress"><span class="session-no-tasks">No tasks</span></div>'
+            : `<div class="session-progress">
             <div class="progress-bar"><div class="progress-fill" style="width: ${percent}%"></div></div>
             <span class="progress-text">${session.completed}/${total}</span>
-          </div>
+          </div>`}
           <div class="session-time">${formatDate(session.modifiedAt)}</div>
         </button>
       `;
@@ -2672,7 +2689,9 @@
     function filterBySessions(value) {
       sessionFilter = value;
       localStorage.setItem('sessionFilter', sessionFilter);
-      renderSessions();
+      // 'with-tasks' is applied server-side (before the limit), so the session
+      // list has to be refetched rather than just re-rendered
+      fetchSessions();
     }
 
     function changeSessionLimit(value) {
@@ -2958,14 +2977,18 @@
     }
     setupEventSource();
 
-    // Fetch sessions and show newest one by default
+    // Fetch sessions and show the newest one that actually has tasks. Sessions
+    // without a tasks directory are legitimate and listed, but opening one on
+    // boot shows an empty board and 404s /api/sessions/:id on every refresh,
+    // so they are a poor default landing view.
     fetchSessions().then(() => {
-      if (sessions.length > 0) {
-        // Sessions are already sorted by newest first from API
-        fetchTasks(sessions[0].id);
-      } else {
+      if (sessions.length === 0) {
         showAllTasks();
+        return;
       }
+      // already sorted newest-first by the API
+      const landing = sessions.find(s => s.hasTasks !== false) || sessions[0];
+      fetchTasks(landing.id);
     });
   </script>
 
