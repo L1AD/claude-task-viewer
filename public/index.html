@@ -1664,7 +1664,7 @@
     let currentSessionId = null;
     let currentTasks = [];
     let viewMode = 'session';
-    let sessionFilter = localStorage.getItem('sessionFilter') || 'all'; // 'all' or 'active'
+    let sessionFilter = localStorage.getItem('sessionFilter') || 'with-tasks'; // 'with-tasks' | 'all' | 'active'
     let sessionLimit = localStorage.getItem('sessionLimit') || '20'; // '10', '20', '50', 'all'
     let filterProject = null; // null = all projects, or project path to filter
     let searchQuery = ''; // Search query for fuzzy search
@@ -2101,6 +2101,9 @@
         } else if (sessionFilter === 'active') {
           emptyMsg = 'No active sessions';
           emptyHint = 'Select "All Sessions" to see all';
+        } else if (sessionFilter === 'with-tasks') {
+          emptyMsg = 'No sessions with tasks';
+          emptyHint = 'Select "All Sessions" to include sessions that have none';
         }
         sessionsList.innerHTML = `
           <div style="padding: 24px 12px; text-align: center; color: var(--text-muted); font-size: 12px;">
