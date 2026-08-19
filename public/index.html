@@ -2152,7 +2152,7 @@
       const tooltip = [timeDisplay, gitBranch ? `Branch: ${gitBranch}` : ''].filter(Boolean).join(' | ');
 
       return `
-        <button onclick="fetchTasks('${session.id}')" class="session-item ${isActive ? 'active' : ''} ${isArchived ? 'archived' : ''}" title="${tooltip}">
+        <button onclick="fetchTasks('${session.id}')" class="session-item ${isActive ? 'active' : ''} ${isArchived ? 'archived' : ''}" title="${escapeHtml(tooltip)}">
           <div class="session-name">
             <span>${escapeHtml(primaryName)}</span>
             ${hasInProgress ? '<span class="pulse"></span>' : ''}
@@ -2664,9 +2664,9 @@
     }
 
     function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
+      return String(text ?? '').replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      })[c]);
     }
 
     function filterBySessions(value) {
@@ -2787,7 +2787,7 @@
         const widthPct = Math.max(((end - start) / span) * 100, 0.5);
         const statusClass = task.status === 'in_progress' ? 'in_progress' : task.status;
         const actualSessionId = task.sessionId || currentSessionId;
-        const safeSubject = escapeHtml(task.subject).replace(/'/g, '&#39;');
+        const safeSubject = escapeHtml(task.subject);
 
         return `
           <div class="timeline-row"
